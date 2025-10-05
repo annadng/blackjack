@@ -6,9 +6,10 @@ import { useRouter } from "next/navigation";
 interface NavigationProps {
     chips: number;
     onHistoryClick?: () => void;
+    onBuyChipsClick?: () => void;
 }
 
-export default function Navigation({ chips, onHistoryClick }: NavigationProps) {
+export default function Navigation({ chips, onHistoryClick, onBuyChipsClick }: NavigationProps) {
     const router = useRouter();
     const [prevChips, setPrevChips] = useState(chips);
     const [shouldPulse, setShouldPulse] = useState(false);
@@ -39,10 +40,19 @@ export default function Navigation({ chips, onHistoryClick }: NavigationProps) {
                     >
                         Blackjack
                     </button>
-                    <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#ffb5c0]/30 bg-[#ffb5c0]/5">
-                        <span className={`text-sm text-gray-600 ${shouldPulse ? "animate-pulse" : ""}`}>
-                            ${chips}
-                        </span>
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full border border-[#ffb5c0]/30 bg-[#ffb5c0]/5">
+                            <span className={`text-sm text-gray-600 ${shouldPulse ? "animate-pulse" : ""}`}>
+                                ${chips}
+                            </span>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={onBuyChipsClick}
+                            className="px-3 py-1.5 text-xs bg-[#ffb5c0] hover:bg-[#ff9eb0] text-white rounded-full transition-colors"
+                        >
+                            + Add
+                        </button>
                     </div>
                 </div>
 
