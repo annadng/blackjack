@@ -1,15 +1,20 @@
 import './globals.css';
 import type { ReactNode } from 'react';
+import AuthProvider from '@/components/SessionProvider';
 
 export const metadata = {
-    title: 'Blackjack Game',
+    title: 'Blackjack',
     description: 'Play blackjack online',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
         <html lang="en">
-        <body>{children}</body>
+        <body>
+        <AuthProvider>
+            {children}
+        </AuthProvider>
+        </body>
         </html>
     );
 }
