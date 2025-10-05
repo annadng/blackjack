@@ -1,3 +1,5 @@
+"use client";
+
 import { ALLOWED_BETS } from "@/hooks/useBetting";
 
 interface BetControlsProps {

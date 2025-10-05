@@ -1,9 +1,5 @@
 import { useState } from "react";
-
-interface Card {
-    name: string;
-    value: number;
-}
+import type {Card} from "@/types";
 
 export type GameResult = "win" | "lose" | "push" | null;
 export type ActionType = "hit" | "stand" | null;

@@ -1,9 +1,11 @@
-interface AISuggestionProps {
+"use client";
+
+interface AIAssistantProps {
     suggestion: string | null;
     playerTotal: number;
 }
 
-export default function AISuggestion({ suggestion, playerTotal }: AISuggestionProps) {
+export default function AIAssistant({ suggestion, playerTotal }: AIAssistantProps) {
     if (!suggestion) return null;
 
     const getExplanation = () => {

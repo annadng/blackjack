@@ -1,3 +1,5 @@
+"use client";
+
 import type { ActionType } from "@/hooks/useBlackjack";
 
 interface GameControlsProps {

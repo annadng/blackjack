@@ -1,3 +1,5 @@
+"use client";
+
 import type {Card} from "@/types";
 
 export default function CardPlaceholders({ cards, label, total }: { cards: Card[]; label: string; total: number }) {

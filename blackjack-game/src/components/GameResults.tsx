@@ -1,3 +1,5 @@
+"use client";
+
 import type {GameResult as GameResultType} from "@/hooks/useBlackjack";
 
 interface GameResultProps {

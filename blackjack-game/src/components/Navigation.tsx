@@ -1,8 +1,8 @@
-interface NavigationTools {
+interface NavigationProps {
     chips: number;
 }
 
-export default function Navigation({ chips }: NavigationTools) {
+export default function Navigation({ chips }: NavigationProps) {
     return (
         <nav className="bg-pink-300 text-white flex justify-between items-center p-4 shadow-md">
             <div className="flex items-center space-x-4 font-bold text-xl">
