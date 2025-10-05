@@ -1,173 +1,244 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { dynamo } from "@/lib/dynamoClient";
-import { PutCommand, UpdateCommand } from "@aws-sdk/lib-dynamodb";
-
-interface Card {
-    value: number;
-    name: string;
-}
+import { PutCommand, UpdateCommand, GetCommand } from "@aws-sdk/lib-dynamodb";
+import type {Card} from "@/types";
 
 // Helper to draw a random card
 function drawCard(): Card {
-    const names = ["2","3","4","5","6","7","8","9","10","J","Q","K","A"];
+    const names = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
     const name = names[Math.floor(Math.random() * names.length)];
     let value: number;
 
-    if (["J","Q","K"].includes(name)) value = 10;
-    else if (name === "A") value = 11; // Handle Ace as 11 initially
+    if (["J", "Q", "K"].includes(name)) value = 10;
+    else if (name === "A") value = 11;
     else value = parseInt(name);
 
-    return { value, name };
+    return { name, value };
 }
 
 // Calculate total with Ace adjustment
 function calculateTotal(cards: Card[]): number {
     let total = cards.reduce((sum, c) => sum + c.value, 0);
-    let aces = cards.filter(c => c.name === "A").length;
+    let aces = cards.filter((c) => c.name === "A").length;
 
     while (total > 21 && aces > 0) {
-        total -= 10; // count Ace as 1 instead of 11
+        total -= 10;
         aces--;
     }
 
     return total;
 }
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
     try {
-        const body = await req.json();
-        const { username, action, gameId, bet, currentPlayerCards, currentDealerCards } = body;
+        const { username, action, gameId, bet } = await request.json();
 
         if (!username) {
             return NextResponse.json({ error: "Missing username" }, { status: 400 });
         }
 
-        if (action === "Place bet") {
+        // Start new game
+        if (action === "deal") {
             if (!bet || bet <= 0) {
-                return NextResponse.json({ error: "Bet must be greater than 0" }, { status: 400 });
+                return NextResponse.json({ error: "Invalid bet amount" }, { status: 400 });
             }
 
-            // Decrease chips
-            const userUpdate = new UpdateCommand({
-                TableName: process.env.DYNAMO_USERS_TABLE!,
-                Key: { username },
-                UpdateExpression: "SET chips = if_not_exists(chips, :zero) - :bet",
-                ConditionExpression: "chips >= :bet",
-                ExpressionAttributeValues: {
-                    ":bet": bet,
-                    ":zero": 0,
-                },
-                ReturnValues: "UPDATED_NEW",
-            });
-            
+            // Deduct chips
             try {
-                await dynamo.send(userUpdate);
+                await dynamo.send(
+                    new UpdateCommand({
+                        TableName: process.env.DYNAMO_USERS_TABLE || "blackjack-users",
+                        Key: { username },
+                        UpdateExpression: "SET chips = chips - :bet",
+                        ConditionExpression: "chips >= :bet",
+                        ExpressionAttributeValues: { ":bet": bet },
+                        ReturnValues: "ALL_NEW",
+                    })
+                );
             } catch (err) {
-                return NextResponse.json({ error: "Not enough chips" }, { status: 400 });
+                return NextResponse.json({ error: "Insufficient chips" }, { status: 400 });
             }
 
             // Deal initial cards
             const playerCards = [drawCard(), drawCard()];
             const dealerCards = [drawCard()];
+            const newGameId = `${username}-${Date.now()}`;
 
-            const gameIdNew = Date.now().toString();
+            const playerTotal = calculateTotal(playerCards);
+            const dealerTotal = calculateTotal(dealerCards);
+
+            // Store game state in DynamoDB
+            await dynamo.send(
+                new PutCommand({
+                    TableName: process.env.GAME_STATE_TABLE || "blackjack-game-state",
+                    Item: {
+                        gameId: newGameId,
+                        username,
+                        playerCards,
+                        dealerCards,
+                        bet,
+                        playerTotal,
+                        dealerTotal,
+                        status: "active",
+                        createdAt: Date.now(),
+                    },
+                })
+            );
 
             return NextResponse.json({
-                gameId: gameIdNew,
+                gameId: newGameId,
                 playerCards,
                 dealerCards,
-                playerTotal: calculateTotal(playerCards),
-                dealerTotal: calculateTotal(dealerCards),
+                playerTotal,
+                dealerTotal,
             });
         }
 
-        if (!gameId || !currentPlayerCards || !currentDealerCards) {
-            return NextResponse.json({ error: "Missing game state for action" }, { status: 400 });
+        // For hit/stand actions, validate gameId
+        if (!gameId) {
+            return NextResponse.json({ error: "Missing gameId" }, { status: 400 });
         }
 
-        let playerCards: Card[] = currentPlayerCards;
-        let dealerCards: Card[] = currentDealerCards;
+        // Get current game state
+        const gameState = await dynamo.send(
+            new GetCommand({
+                TableName: process.env.GAME_STATE_TABLE || "blackjack-game-state",
+                Key: { gameId },
+            })
+        );
 
+        if (!gameState.Item || gameState.Item.status !== "active") {
+            return NextResponse.json({ error: "Invalid game state" }, { status: 400 });
+        }
+
+        let { playerCards, dealerCards, bet: gameBet } = gameState.Item;
+
+        // Hit action
         if (action === "hit") {
             const card = drawCard();
-            playerCards.push(card);
+            playerCards = [...playerCards, card];
             const playerTotal = calculateTotal(playerCards);
-
-            let result = "ongoing";
+            const dealerTotal = calculateTotal(dealerCards);
 
             if (playerTotal > 21) {
-                result = "lose";
+                // Player busts
+                await dynamo.send(
+                    new UpdateCommand({
+                        TableName: process.env.GAME_STATE_TABLE || "blackjack-game-state",
+                        Key: { gameId },
+                        UpdateExpression: "SET #status = :status, playerCards = :cards, playerTotal = :total",
+                        ExpressionAttributeNames: { "#status": "status" },
+                        ExpressionAttributeValues: {
+                            ":status": "finished",
+                            ":cards": playerCards,
+                            ":total": playerTotal,
+                        },
+                    })
+                );
 
-                // Save history
-                await dynamo.send(new PutCommand({
-                    TableName: process.env.DYNAMO_HISTORY_TABLE!,
-                    Item: {
-                        username,
-                        gameId,
-                        playerTotal,
-                        dealerTotal: calculateTotal(dealerCards),
-                        result,
-                        bet,
-                        playedAt: new Date().toISOString(),
-                    }
-                }));
+                return NextResponse.json({
+                    playerCards,
+                    dealerCards,
+                    playerTotal,
+                    dealerTotal,
+                    result: "lose",
+                    gameActive: false,
+                });
             }
 
-            return NextResponse.json({ playerCards, dealerCards, playerTotal, dealerTotal: calculateTotal(dealerCards), result });
+            // Update game state
+            await dynamo.send(
+                new UpdateCommand({
+                    TableName: process.env.GAME_STATE_TABLE || "blackjack-game-state",
+                    Key: { gameId },
+                    UpdateExpression: "SET playerCards = :cards, playerTotal = :total",
+                    ExpressionAttributeValues: {
+                        ":cards": playerCards,
+                        ":total": playerTotal,
+                    },
+                })
+            );
+
+            return NextResponse.json({
+                playerCards,
+                dealerCards,
+                playerTotal,
+                dealerTotal,
+                result: null,
+                gameActive: true,
+            });
         }
 
+        // Stand action
         if (action === "stand") {
-            // Dealer draws until total >= 17
+            // Dealer draws until >= 17
             while (calculateTotal(dealerCards) < 17) {
-                dealerCards.push(drawCard());
+                dealerCards = [...dealerCards, drawCard()];
             }
 
             const playerTotal = calculateTotal(playerCards);
             const dealerTotal = calculateTotal(dealerCards);
             let result: "win" | "lose" | "push";
 
-            if (dealerTotal > 21 || playerTotal > dealerTotal) result = "win";
-            else if (dealerTotal > playerTotal) result = "lose";
-            else result = "push";
-
-            // Update chips if player won
-            if (result === "win") {
-                await dynamo.send(new UpdateCommand({
-                    TableName: process.env.DYNAMO_USERS_TABLE!,
-                    Key: { username },
-                    UpdateExpression: "SET chips = if_not_exists(chips, :zero) + :bet",
-                    ExpressionAttributeValues: { ":bet": bet! * 2, ":zero": 0 },
-                }));
-            } else if (result === "push") {
-                await dynamo.send(new UpdateCommand({
-                    TableName: process.env.DYNAMO_USERS_TABLE!,
-                    Key: { username },
-                    UpdateExpression: "SET chips = if_not_exists(chips, :zero) + :bet",
-                    ExpressionAttributeValues: { ":bet": bet!, ":zero": 0 },
-                }));
+            if (dealerTotal > 21 || playerTotal > dealerTotal) {
+                result = "win";
+            } else if (dealerTotal > playerTotal) {
+                result = "lose";
+            } else {
+                result = "push";
             }
 
-            // Save history
-            await dynamo.send(new PutCommand({
-                TableName: process.env.DYNAMO_HISTORY_TABLE!,
-                Item: {
-                    username,
-                    gameId,
-                    playerTotal,
-                    dealerTotal,
-                    result,
-                    bet,
-                    playedAt: new Date().toISOString(),
-                }
-            }));
+            // Calculate payout
+            let payout = 0;
+            if (result === "win") {
+                payout = gameBet * 2;
+            } else if (result === "push") {
+                payout = gameBet;
+            }
 
-            return NextResponse.json({ playerCards, dealerCards, playerTotal, dealerTotal, result });
+            // Update chips if there's a payout
+            if (payout > 0) {
+                await dynamo.send(
+                    new UpdateCommand({
+                        TableName: process.env.DYNAMO_USERS_TABLE || "blackjack-users",
+                        Key: { username },
+                        UpdateExpression: "SET chips = chips + :payout",
+                        ExpressionAttributeValues: { ":payout": payout },
+                    })
+                );
+            }
+
+            // Mark game as finished
+            await dynamo.send(
+                new UpdateCommand({
+                    TableName: process.env.GAME_STATE_TABLE || "blackjack-game-state",
+                    Key: { gameId },
+                    UpdateExpression:
+                        "SET #status = :status, dealerCards = :dcards, playerTotal = :ptotal, dealerTotal = :dtotal, result = :result",
+                    ExpressionAttributeNames: { "#status": "status" },
+                    ExpressionAttributeValues: {
+                        ":status": "finished",
+                        ":dcards": dealerCards,
+                        ":ptotal": playerTotal,
+                        ":dtotal": dealerTotal,
+                        ":result": result,
+                    },
+                })
+            );
+
+            return NextResponse.json({
+                playerCards,
+                dealerCards,
+                playerTotal,
+                dealerTotal,
+                result,
+                gameActive: false,
+            });
         }
 
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-
-    } catch (err) {
-        console.error(err);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    } catch (error) {
+        console.error("Game error:", error);
+        return NextResponse.json({ error: "Internal server error" }, { status: 500 });
     }
 }
