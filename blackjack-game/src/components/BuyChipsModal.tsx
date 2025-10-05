@@ -6,7 +6,9 @@ interface BuyChipsModalProps {
     isOpen: boolean;
     onClose: () => void;
     username: string | null | undefined;
+    isGuest?: boolean;
     onSuccess: () => void;
+    onGuestAddChips?: (amount: number) => void;
 }
 
 const CHIP_PACKAGES = [
@@ -16,14 +18,29 @@ const CHIP_PACKAGES = [
     { amount: 5000, label: "5,000 Chips" },
 ];
 
-export default function BuyChipsModal({ isOpen, onClose, username, onSuccess }: BuyChipsModalProps) {
+export default function BuyChipsModal({isOpen, onClose, username, isGuest = false, onSuccess, onGuestAddChips
+                                      }: BuyChipsModalProps) {
     const [loading, setLoading] = useState(false);
     const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
 
     if (!isOpen) return null;
 
     const handleBuy = async () => {
-        if (!selectedAmount || !username) return;
+        if (!selectedAmount) return;
+
+        if (isGuest) {
+            // Add chips for guest users
+            if (onGuestAddChips) {
+                onGuestAddChips(selectedAmount);
+                onSuccess();
+                onClose();
+                setSelectedAmount(null);
+            }
+            return;
+        }
+
+        // Add chips for logged-in users
+        if (!username) return;
 
         setLoading(true);
         try {
@@ -68,7 +85,7 @@ export default function BuyChipsModal({ isOpen, onClose, username, onSuccess }: 
                 </div>
 
                 <p className="text-sm text-gray-500 mb-6">
-                    Select the amount of chips you want to purchase
+                    Select the amount of chips you want to purchase.
                 </p>
 
                 <div className="space-y-3 mb-6">
@@ -95,7 +112,6 @@ export default function BuyChipsModal({ isOpen, onClose, username, onSuccess }: 
                     type="button"
                     onClick={handleBuy}
                     disabled={!selectedAmount || loading}
-                    className="w-full px-6 py-3 bg-[#ffb5c0] hover:bg-[#ff9eb0] text-white rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {loading ? "Adding..." : "Add Chips"}
                 </button>
