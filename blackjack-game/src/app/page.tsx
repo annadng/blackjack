@@ -147,9 +147,10 @@ export default function GamePage() {
                         </div>
                     )}
 
-                    <CardPlaceholder cards={game.dealerCards} total={game.dealerTotal} label="Dealer" />
-                    <CardPlaceholder cards={game.playerCards} total={game.playerTotal} label="You" />
-
+                    <div className="flex flex-col gap-3">
+                        <CardPlaceholder cards={game.dealerCards} total={game.dealerTotal} label="Dealer" />
+                        <CardPlaceholder cards={game.playerCards} total={game.playerTotal} label="You" />
+                    </div>
 
                     {game.result && (
                         <div className="text-center mb-6 animate-fadeIn">
@@ -161,7 +162,7 @@ export default function GamePage() {
                         </div>
                     )}
 
-                    <div className="border-t border-gray-100 pt-8">
+                    <div className="border-gray-100 pt-8">
                         <div className="flex flex-col items-center gap-6">
                             {!game.gameActive && !game.result && (
                                 <>

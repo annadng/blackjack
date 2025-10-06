@@ -11,11 +11,9 @@ export function useChips(
     const isGuest = !username;
 
     useEffect(() => {
-        console.log('useChips effect:', { isGuest, isLoaded, guestChips, username });
 
         if (isGuest && isLoaded) {
             // For guests, use the guestChips value
-            console.log('Setting guest chips to:', guestChips);
             setCurrentChips(guestChips);
         } else if (username) {
             // For logged-in users, fetch from API
