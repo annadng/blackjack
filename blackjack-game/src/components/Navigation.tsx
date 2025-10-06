@@ -43,7 +43,7 @@ export default function Navigation({ chips, onHistoryClick, onBuyChipsClick }: N
                         ♠ Blackjack
                     </button>
 
-                    {chips > 0 && (
+                    {chips >= 0 && (
                         <div className="flex items-center gap-3">
                             <div className="px-4 py-2 rounded-full bg-gradient-to-r from-pink-500 to-pink-600 shadow-lg">
                                 <span className={`text-white font-semibold ${shouldPulse ? "animate-pulse" : ""}`}>

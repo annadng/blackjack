@@ -2,26 +2,22 @@ import { useState, useEffect } from "react";
 
 const GUEST_CHIPS_KEY = "blackjack_guest_chips";
 const GUEST_HISTORY_KEY = "blackjack_guest_history";
-const DEFAULT_CHIPS = 100;
+const DEFAULT_CHIPS = 0;
 
 export function useGuestStorage() {
-    const [guestChips, setGuestChips] = useState<number>(DEFAULT_CHIPS);
+    const [guestChips, setGuestChips] = useState<number>(0);
     const [guestHistory, setGuestHistory] = useState<any[]>([]);
+    const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
         // Load from localStorage on mount
-        const storedChips = localStorage.getItem(GUEST_CHIPS_KEY);
+        const stored = localStorage.getItem(GUEST_CHIPS_KEY);
         const storedHistory = localStorage.getItem(GUEST_HISTORY_KEY);
 
-        if (storedChips) {
-            setGuestChips(parseInt(storedChips));
-        } else {
-            localStorage.setItem(GUEST_CHIPS_KEY, DEFAULT_CHIPS.toString());
-        }
-
-        if (storedHistory) {
-            setGuestHistory(JSON.parse(storedHistory));
-        }
+        // If stored chips exist, use them; otherwise default to 0
+        setGuestChips(stored ? parseInt(stored) : DEFAULT_CHIPS);
+        setGuestHistory(storedHistory ? JSON.parse(storedHistory) : []);
+        setIsLoaded(true);
     }, []);
 
     const updateGuestChips = (amount: number) => {
@@ -62,6 +58,7 @@ export function useGuestStorage() {
         addGuestChips,
         deductGuestChips,
         addGuestHistory,
-        clearGuestData
+        clearGuestData,
+        isLoaded
     };
 }

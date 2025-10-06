@@ -23,7 +23,7 @@ export default function GamePage() {
     const isGuest = !username;
 
     // Guest storage
-    const {guestChips, deductGuestChips, addGuestChips, addGuestHistory} = useGuestStorage();
+    const {guestChips, isLoaded, deductGuestChips, addGuestChips, addGuestHistory} = useGuestStorage();
 
     // Server-side game (logged in users)
     const serverGame = useBlackjack();
@@ -33,9 +33,9 @@ export default function GamePage() {
 
     // Use appropriate game based on login status
     const game = isGuest ? guestGame : serverGame;
-    
+
     // Custom hooks
-    const { currentChips, refetchChips } = useChips(username, guestChips);
+    const { currentChips, refetchChips } = useChips(username, guestChips, isLoaded);
     const [showBuyChips, setShowBuyChips] = useState(false);
     const { bet, addBet, resetBet, validateBet } = useBetting();
     const { aiSuggestion, highlightAction, askAI, resetAI } = useAIAssistant();
@@ -65,7 +65,7 @@ export default function GamePage() {
                 }
             } else if (username) {
                 // Save to database for logged-in users
-                saveGame({username, bet, result: game.result, playerTotal: game.playerTotal, dealerTotal: game.dealerTotal, 
+                saveGame({username, bet, result: game.result, playerTotal: game.playerTotal, dealerTotal: game.dealerTotal,
                     playerCards: game.playerCards,
                     dealerCards: game.dealerCards,
                     winnings
@@ -84,7 +84,7 @@ export default function GamePage() {
                 alert("Insufficient chips");
                 return;
             }
-            game.dealInitialCards;
+            guestGame.dealInitialCards();
         } else if (username) {
             // Server-side game for logged-in users
             const success = await serverGame.dealInitialCards(username, bet);
@@ -96,7 +96,7 @@ export default function GamePage() {
 
     const handleHit = () => {
         if (isGuest) {
-            game.hit;
+            guestGame.hit();
         } else if (username) {
             serverGame.hit(username);
         }
@@ -105,7 +105,7 @@ export default function GamePage() {
 
     const handleStand = () => {
         if (isGuest) {
-            game.stand;
+            guestGame.stand();
         } else if (username) {
             serverGame.stand(username);
         }
@@ -203,5 +203,4 @@ export default function GamePage() {
             />
         </div>
     );
-
 }
