@@ -11,8 +11,6 @@ interface BetControlsProps {
 export default function BetControls({ bet, onSelectBet, onPlaceBet }: BetControlsProps) {
     return (
         <>
-            <div className="text-2xl font-bold">{bet}</div>
-
             <div className="flex space-x-4">
                 {ALLOWED_BETS.map((b) => (
                     <button

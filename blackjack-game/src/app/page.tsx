@@ -129,7 +129,7 @@ export default function GamePage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="min-h-screen bg-[#fccfcf]">
             <Navigation
                 chips={currentChips}
                 onBuyChipsClick={() => setShowBuyChips(true)}
