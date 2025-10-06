@@ -40,11 +40,15 @@ export default function GamePage() {
     const [showBuyChips, setShowBuyChips] = useState(false);
     const { bet, addBet, resetBet, validateBet } = useBetting();
     const { aiSuggestion, highlightAction, askAI, resetAI } = useAIAssistant();
-    const { saveGame } = useGameHistory(username);
+    const { saveGame } = useGameHistory(username ?? undefined);
     const [showInsufficientChips, setShowInsufficientChips] = useState(false);
 
     // Track if we've already saved this game to prevent duplicates
     const savedGameRef = useRef<string | null>(null);
+
+    // Hydration fix
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
 
     useEffect(() => {
         // Only save when game ends with valid data
@@ -61,7 +65,7 @@ export default function GamePage() {
             const winnings = game.result === "win" ? bet : game.result === "lose" ? -bet : 0;
 
             if (isGuest) {
-                // Save to localStorage for guests
+                // Save to DynamoDB for guests
                 const gameData = {
                     id: `guest-${Date.now()}`,
                     username: "Guest",
@@ -109,7 +113,7 @@ export default function GamePage() {
         if (!validateBet()) return;
 
         if (isGuest) {
-            const success = deductGuestChips(bet);
+            const success = await deductGuestChips(bet);
             if (!success) {
                 setShowInsufficientChips(true);
                 return;
@@ -159,6 +163,10 @@ export default function GamePage() {
             refetchChips();
         }
     };
+
+    if (!mounted) {
+        return <div className="min-h-screen bg-[#fccfcf]" />;
+    }
 
     return (
         <div className="min-h-screen bg-[#fccfcf]">
