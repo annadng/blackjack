@@ -1,23 +1,29 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
-export function useChips(username: string | null | undefined) {
+export function useChips(username: string | null | undefined, guestChips: number = 0) {
     const [currentChips, setCurrentChips] = useState<number>(0);
+    const isGuest = !username;
 
-    useEffect(() => {
-        async function fetchChips() {
-            if (!username) return;
-
-            try {
-                const res = await fetch(`/api/chips/balance?username=${username}`);
-                const data = await res.json();
-                setCurrentChips(data.chips);
-            } catch (err) {
-                console.error("Failed to fetch chips:", err);
-            }
+    const fetchChips = useCallback(async () => {
+        if (isGuest) {
+            // Use guest chips from localStorage
+            setCurrentChips(guestChips);
+            return;
         }
 
-        fetchChips();
-    }, [username]);
+        // Fetch from server for logged-in users
+        try {
+            const res = await fetch(`/api/chips/balance?username=${username}`);
+            const data = await res.json();
+            setCurrentChips(data.chips);
+        } catch (err) {
+            console.error("Failed to fetch chips:", err);
+        }
+    }, [username, guestChips, isGuest]);
 
-    return { currentChips };
+    useEffect(() => {
+        fetchChips();
+    }, [fetchChips]);
+
+    return { currentChips, refetchChips: fetchChips };
 }
