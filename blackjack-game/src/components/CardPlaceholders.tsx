@@ -2,7 +2,9 @@
 
 import type {Card} from "@/types";
 
-export default function CardPlaceholders({ cards, label, total, showScore = false }: { cards: Card[]; label: string; total: number; showScore?: boolean }) {
+export default function CardPlaceholders({ cards, label, total }: { cards: Card[]; label: string; total: number }) {
+    const showScore = cards.length > 0 && total > 0;
+
     return (
         <div className="flex flex-col items-center gap-4">
             {/* Cards - Standard poker card ratio 2.5:3.5 (5:7) */}
@@ -72,7 +74,7 @@ export default function CardPlaceholders({ cards, label, total, showScore = fals
             {/* Label with score */}
             <div className="px-6 py-2 bg-white/20 backdrop-blur-sm rounded-full border border-white/30 shadow-lg">
                 <p className="text-black font-semibold text-lg">
-                    {showScore && total > 0 ? `${total} ` : ''}{label}
+                    {showScore ? `${total} ` : ''}{label}
                 </p>
             </div>
         </div>
