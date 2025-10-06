@@ -12,8 +12,12 @@ export default function LoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
+    const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
     const handleSendCode = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!isValidEmail) return;
+
         setError("");
         setLoading(true);
 
@@ -31,7 +35,7 @@ export default function LoginPage() {
             } else {
                 setError(data.error || "Failed to send verification code");
             }
-        } catch (err) {
+        } catch {
             setError("Network error. Please try again.");
         } finally {
             setLoading(false);
@@ -55,7 +59,7 @@ export default function LoginPage() {
             } else {
                 setError("Invalid verification code");
             }
-        } catch (err) {
+        } catch {
             setError("Verification failed. Please try again.");
         } finally {
             setLoading(false);
@@ -97,8 +101,12 @@ export default function LoginPage() {
 
                         <button
                             type="submit"
-                            disabled={loading}
-                            className="w-full bg-[#ffb5c0] text-white py-3 rounded-lg font-medium hover:bg-[#ff9fb0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={loading || !isValidEmail}
+                            className={`w-full py-3 rounded-lg font-medium transition-colors disabled:cursor-not-allowed
+                                ${isValidEmail
+                                ? "bg-pink-600 hover:bg-pink-700 text-white"
+                                : "bg-[#ffb5c0] text-white opacity-70"
+                            }`}
                         >
                             {loading ? "Sending..." : "Send Verification Code"}
                         </button>
@@ -126,8 +134,8 @@ export default function LoginPage() {
 
                         <button
                             type="submit"
-                            disabled={loading}
-                            className="w-full bg-[#ffb5c0] text-white py-3 rounded-lg font-medium hover:bg-[#ff9fb0] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={loading || verificationCode.length !== 6}
+                            className="w-full py-3 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {loading ? "Verifying..." : "Verify & Login"}
                         </button>

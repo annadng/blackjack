@@ -11,19 +11,13 @@ const handler = NextAuth({
                 code: { label: "Verification Code", type: "text" }
             },
             async authorize(credentials) {
-                if (!credentials?.email || !credentials?.code) {
-                    return null;
-                }
+                if (!credentials?.email || !credentials?.code) return null;
 
                 try {
-                    // Verify the code against your backend
                     const response = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/verify-code`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            email: credentials.email,
-                            code: credentials.code
-                        })
+                        body: JSON.stringify({ email: credentials.email, code: credentials.code })
                     });
 
                     const data = await response.json();
@@ -46,7 +40,7 @@ const handler = NextAuth({
     ],
     session: {
         strategy: "jwt",
-        maxAge: 30 * 24 * 60 * 60, // 30 days
+        maxAge: 30 * 24 * 60 * 60 // 30 days
     },
     callbacks: {
         async jwt({ token, user }) {
