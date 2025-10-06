@@ -6,14 +6,13 @@ export function useChips(username: string | null | undefined, guestChips?: numbe
     const isGuest = !username || username.startsWith("guest-");
 
     const fetchChips = useCallback(async () => {
-        if (!username) {
-            setCurrentChips(0);
-            return;
-        }
-
-        // If it's a guest and we have guestChips loaded, use those
         if (isGuest && typeof guestChips === "number" && isGuestLoaded) {
             setCurrentChips(guestChips);
+            return;
+        }
+        
+        if (!username) {
+            setCurrentChips(0);
             return;
         }
 
@@ -33,7 +32,7 @@ export function useChips(username: string | null | undefined, guestChips?: numbe
 
     useEffect(() => {
         fetchChips();
-    }, [fetchChips]);
+    }, [fetchChips, guestChips]);
 
     const refetchChips = () => {
         fetchChips();

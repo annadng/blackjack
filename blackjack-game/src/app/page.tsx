@@ -159,9 +159,7 @@ export default function GamePage() {
     };
 
     const handleBuyChipsSuccess = () => {
-        if (!isGuest) {
-            refetchChips();
-        }
+        refetchChips();
     };
 
     if (!mounted) {
