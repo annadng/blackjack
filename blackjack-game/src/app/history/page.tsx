@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useState, useMemo } from "react";
+import {useState, useMemo, useEffect} from "react";
 import Navigation from "@/components/Navigation";
 import BuyChipsModal from "@/components/BuyChipsModal";
 import { useChips } from "@/hooks/useChips";
@@ -20,10 +20,10 @@ export default function HistoryPage() {
     const [guestPage, setGuestPage] = useState(1);
 
     // Guest storage
-    const { guestChips, guestHistory, addGuestChips } = useGuestStorage();
+    const { guestChips, isLoaded, guestHistory, addGuestChips } = useGuestStorage();
 
     // Server-side data for logged-in users
-    const { currentChips, refetchChips } = useChips(username, guestChips);
+    const { currentChips, refetchChips } = useChips(username, guestChips, isLoaded);
     const {
         history: serverHistory,
         loading,
@@ -113,6 +113,12 @@ export default function HistoryPage() {
     };
 
     const totalGames = isGuest ? guestHistory.length : (isGuest ? 0 : totalPages * ITEMS_PER_PAGE);
+    
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+    if (!mounted) {
+        return <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100" />;
+    }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -183,23 +189,16 @@ export default function HistoryPage() {
                                                 <div className="text-center">
                                                     <p className="text-xs text-gray-400 mb-1">Bet</p>
                                                     <p className="text-sm text-gray-700 font-light">
-                                                        ${game.bet}
+                                                        {game.bet}
                                                     </p>
                                                 </div>
 
                                                 <div className="text-center">
-                                                    <p className="text-xs text-gray-400 mb-1">Your Hand</p>
+                                                    <p className="text-xs text-gray-400 mb-1">Score</p>
                                                     <p className="text-sm text-gray-700 font-light">
-                                                        {game.playerCards.map((c: any) => c.name).join(", ")}
-                                                        <span className="ml-2 text-[#ffb5c0]">({game.playerTotal})</span>
-                                                    </p>
-                                                </div>
-
-                                                <div className="text-center">
-                                                    <p className="text-xs text-gray-400 mb-1">Dealer Hand</p>
-                                                    <p className="text-sm text-gray-700 font-light">
-                                                        {game.dealerCards.map((c: any) => c.name).join(", ")}
-                                                        <span className="ml-2 text-gray-400">({game.dealerTotal})</span>
+                                                        You: <span className="text-[#ffb5c0] font-medium">{game.playerTotal || 0}</span>
+                                                        <span className="mx-2 text-gray-300">|</span>
+                                                        Dealer: <span className="text-gray-500 font-medium">{game.dealerTotal || 0}</span>
                                                     </p>
                                                 </div>
                                             </div>
@@ -207,8 +206,8 @@ export default function HistoryPage() {
                                             <div className="flex items-center gap-4">
                                                 <div className="text-right">
                                                     <p className="text-xs text-gray-400 mb-1">Result</p>
-                                                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-light ${getResultBadge(game.result)}`}>
-                                                        {game.result.toUpperCase()}
+                                                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getResultBadge(game.result)}`}>
+                                                        {game.result === "win" ? "Win" : game.result === "lose" ? "Lose" : "Push"}
                                                     </span>
                                                 </div>
 
@@ -216,8 +215,8 @@ export default function HistoryPage() {
                                                     <p className="text-xs text-gray-400 mb-1">Winnings</p>
                                                     <p className={`text-lg font-light ${getResultColor(game.result)}`}>
                                                         {game.winnings > 0 ? `+${game.winnings}` :
-                                                            game.winnings < 0 ? `-${Math.abs(game.winnings)}` :
-                                                                '$0'}
+                                                            game.winnings < 0 ? `${game.winnings}` :
+                                                                '0'} chips
                                                     </p>
                                                 </div>
                                             </div>

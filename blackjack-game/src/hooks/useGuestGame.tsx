@@ -65,10 +65,12 @@ export function useGuestGame() {
         }
 
         const dealerScore = calculateTotal(newDealerCards);
+        const playerScore = calculateTotal(playerCards);
+
         setDealerCards(newDealerCards);
         setDealerTotal(dealerScore);
+        setPlayerTotal(playerScore);
 
-        const playerScore = playerTotal;
         let gameResult: GameResult;
 
         if (dealerScore > 21 || playerScore > dealerScore) {

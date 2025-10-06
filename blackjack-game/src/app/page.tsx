@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Navigation from "@/components/Navigation";
 import CardPlaceholder from "@/components/CardPlaceholders";
 import AISuggestion from "@/components/AIAssistant";
@@ -8,9 +8,9 @@ import BetControls from "@/components/BetControls";
 import GameControls from "@/components/GameControls";
 import GameResult from "@/components/GameResults";
 import BuyChipsModal from "@/components/BuyChipsModal";
+import InsufficientChipsModal from "@/components/InsufficientChipsModal";
 import { useSession } from "next-auth/react";
 import { useBetting } from "@/hooks/useBetting";
-import InsufficientChipsModal from "@/components/InsufficientChipsModal";
 import { useAIAssistant } from "@/hooks/useAIAssistant";
 import { useChips } from "@/hooks/useChips";
 import { useBlackjack } from "@/hooks/useBlackjack";
@@ -25,7 +25,7 @@ export default function GamePage() {
 
     // Guest storage
     const {guestChips, isLoaded, deductGuestChips, addGuestChips, addGuestHistory} = useGuestStorage();
-    
+
     // Server-side game (logged in users)
     const serverGame = useBlackjack();
 
@@ -43,14 +43,30 @@ export default function GamePage() {
     const { saveGame } = useGameHistory(username);
     const [showInsufficientChips, setShowInsufficientChips] = useState(false);
 
+    // Track if we've already saved this game to prevent duplicates
+    const savedGameRef = useRef<string | null>(null);
 
     useEffect(() => {
-        if (game.result && bet > 0) {
+        // Only save when game ends with valid data
+        if (game.result && bet > 0 && game.playerTotal > 0 && game.dealerTotal > 0) {
+            // Create unique identifier for this game
+            const gameId = `${game.result}-${game.playerTotal}-${game.dealerTotal}-${bet}-${Date.now()}`;
+
+            // Check if we've already saved this exact game
+            if (savedGameRef.current === gameId) {
+                return;
+            }
+
+            savedGameRef.current = gameId;
             const winnings = game.result === "win" ? bet : game.result === "lose" ? -bet : 0;
 
             if (isGuest) {
                 // Save to localStorage for guests
-                const gameData = {id: `guest-${Date.now()}`, username: "Guest", timestamp: Date.now(), bet,
+                const gameData = {
+                    id: `guest-${Date.now()}`,
+                    username: "Guest",
+                    timestamp: Date.now(),
+                    bet,
                     result: game.result,
                     playerTotal: game.playerTotal,
                     dealerTotal: game.dealerTotal,
@@ -68,14 +84,26 @@ export default function GamePage() {
                 }
             } else if (username) {
                 // Save to database for logged-in users
-                saveGame({username, bet, result: game.result, playerTotal: game.playerTotal, dealerTotal: game.dealerTotal,
+                saveGame({
+                    username,
+                    bet,
+                    result: game.result,
+                    playerTotal: game.playerTotal,
+                    dealerTotal: game.dealerTotal,
                     playerCards: game.playerCards,
                     dealerCards: game.dealerCards,
                     winnings
                 });
             }
         }
-    }, [game.result, bet, game.playerTotal, game.dealerTotal, game.playerCards, game.dealerCards, isGuest, username, saveGame, addGuestHistory, addGuestChips]);
+    }, [game.result, game.playerTotal, game.dealerTotal, bet, isGuest, username]);
+
+    // Reset saved game tracking when new game starts
+    useEffect(() => {
+        if (!game.result) {
+            savedGameRef.current = null;
+        }
+    }, [game.result]);
 
     const handlePlaceBet = async () => {
         if (!validateBet()) return;
@@ -89,12 +117,14 @@ export default function GamePage() {
             guestGame.dealInitialCards();
         } else if (username) {
             const success = await serverGame.dealInitialCards(username, bet);
-            if (!success) return;
+            if (!success) {
+                setShowInsufficientChips(true);
+                return;
+            }
         }
 
         resetAI();
     };
-
 
     const handleHit = () => {
         if (isGuest) {
@@ -200,10 +230,10 @@ export default function GamePage() {
                 isOpen={showInsufficientChips}
                 onClose={() => setShowInsufficientChips(false)}
                 onBuyChips={() => setShowBuyChips(true)}
-                requiredAmount={bet}                     
-                currentChips={currentChips}          
+                requiredAmount={bet}
+                currentChips={currentChips}
             />
-            
+
             <BuyChipsModal
                 isOpen={showBuyChips}
                 onClose={() => setShowBuyChips(false)}
