@@ -10,6 +10,7 @@ import GameResult from "@/components/GameResults";
 import BuyChipsModal from "@/components/BuyChipsModal";
 import { useSession } from "next-auth/react";
 import { useBetting } from "@/hooks/useBetting";
+import InsufficientChipsModal from "@/components/InsufficientChipsModal";
 import { useAIAssistant } from "@/hooks/useAIAssistant";
 import { useChips } from "@/hooks/useChips";
 import { useBlackjack } from "@/hooks/useBlackjack";
@@ -24,7 +25,7 @@ export default function GamePage() {
 
     // Guest storage
     const {guestChips, isLoaded, deductGuestChips, addGuestChips, addGuestHistory} = useGuestStorage();
-
+    
     // Server-side game (logged in users)
     const serverGame = useBlackjack();
 
@@ -40,6 +41,8 @@ export default function GamePage() {
     const { bet, addBet, resetBet, validateBet } = useBetting();
     const { aiSuggestion, highlightAction, askAI, resetAI } = useAIAssistant();
     const { saveGame } = useGameHistory(username);
+    const [showInsufficientChips, setShowInsufficientChips] = useState(false);
+
 
     useEffect(() => {
         if (game.result && bet > 0) {
@@ -78,21 +81,20 @@ export default function GamePage() {
         if (!validateBet()) return;
 
         if (isGuest) {
-            // Deduct chips for guest
             const success = deductGuestChips(bet);
             if (!success) {
-                alert("Insufficient chips");
+                setShowInsufficientChips(true);
                 return;
             }
             guestGame.dealInitialCards();
         } else if (username) {
-            // Server-side game for logged-in users
             const success = await serverGame.dealInitialCards(username, bet);
             if (!success) return;
         }
 
         resetAI();
     };
+
 
     const handleHit = () => {
         if (isGuest) {
@@ -193,6 +195,14 @@ export default function GamePage() {
                 </div>
             </main>
 
+            <InsufficientChipsModal
+                isOpen={showInsufficientChips}
+                onClose={() => setShowInsufficientChips(false)}
+                onBuyChips={() => setShowBuyChips(true)}
+                requiredAmount={bet}                     
+                currentChips={currentChips}          
+            />
+            
             <BuyChipsModal
                 isOpen={showBuyChips}
                 onClose={() => setShowBuyChips(false)}
