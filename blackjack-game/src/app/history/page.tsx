@@ -2,12 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Navigation from "@/components/Navigation";
 import BuyChipsModal from "@/components/BuyChipsModal";
 import { useChips } from "@/hooks/useChips";
 import { useGameHistory } from "@/hooks/useGameHistory";
 import { useGuestStorage } from "@/hooks/useGuestStorage";
+
+const ITEMS_PER_PAGE = 10;
 
 export default function HistoryPage() {
     const router = useRouter();
@@ -15,16 +17,42 @@ export default function HistoryPage() {
     const username = session?.user?.email;
     const isGuest = !username;
     const [showBuyChips, setShowBuyChips] = useState(false);
+    const [guestPage, setGuestPage] = useState(1);
 
     // Guest storage
     const { guestChips, guestHistory, addGuestChips } = useGuestStorage();
 
     // Server-side data for logged-in users
     const { currentChips, refetchChips } = useChips(username, guestChips);
-    const { history: serverHistory, loading, error, hasMore, loadMore, loadingMore } = useGameHistory(username);
+    const {
+        history: serverHistory,
+        loading,
+        error,
+        currentPage: serverPage,
+        totalPages: serverTotalPages,
+        goToPage: serverGoToPage
+    } = useGameHistory(username);
 
-    // Use appropriate history based on login status
-    const history = isGuest ? guestHistory : serverHistory;
+    // Guest pagination (client-side)
+    const guestTotalPages = Math.ceil(guestHistory.length / ITEMS_PER_PAGE);
+    const guestPaginatedHistory = useMemo(() => {
+        const startIndex = (guestPage - 1) * ITEMS_PER_PAGE;
+        const endIndex = startIndex + ITEMS_PER_PAGE;
+        return guestHistory.slice(startIndex, endIndex);
+    }, [guestHistory, guestPage]);
+
+    const guestGoToPage = (page: number) => {
+        if (page >= 1 && page <= guestTotalPages) {
+            setGuestPage(page);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
+
+    // Use appropriate data based on login status
+    const history = isGuest ? guestPaginatedHistory : serverHistory;
+    const currentPage = isGuest ? guestPage : serverPage;
+    const totalPages = isGuest ? guestTotalPages : serverTotalPages;
+    const goToPage = isGuest ? guestGoToPage : serverGoToPage;
 
     const formatDate = (timestamp: number) => {
         return new Date(timestamp).toLocaleString('en-US', {
@@ -54,6 +82,38 @@ export default function HistoryPage() {
         }
     };
 
+    // Generate page numbers to display
+    const getPageNumbers = () => {
+        const pages = [];
+        const maxPagesToShow = 7;
+
+        if (totalPages <= maxPagesToShow) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            if (currentPage <= 4) {
+                for (let i = 1; i <= 5; i++) pages.push(i);
+                pages.push('...');
+                pages.push(totalPages);
+            } else if (currentPage >= totalPages - 3) {
+                pages.push(1);
+                pages.push('...');
+                for (let i = totalPages - 4; i <= totalPages; i++) pages.push(i);
+            } else {
+                pages.push(1);
+                pages.push('...');
+                for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+                pages.push('...');
+                pages.push(totalPages);
+            }
+        }
+
+        return pages;
+    };
+
+    const totalGames = isGuest ? guestHistory.length : (isGuest ? 0 : totalPages * ITEMS_PER_PAGE);
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
             <Navigation
@@ -78,7 +138,7 @@ export default function HistoryPage() {
                     {isGuest && (
                         <div className="mb-6 text-center p-4 bg-gray-50 rounded-lg">
                             <p className="text-xs text-gray-500">
-                                Game History
+                                Playing as Guest • History is stored locally •
                                 <button onClick={() => {}} className="text-[#ffb5c0] hover:underline ml-1">Sign in</button> to sync across devices
                             </p>
                         </div>
@@ -155,8 +215,8 @@ export default function HistoryPage() {
                                                 <div className="text-right">
                                                     <p className="text-xs text-gray-400 mb-1">Winnings</p>
                                                     <p className={`text-lg font-light ${getResultColor(game.result)}`}>
-                                                        {game.winnings > 0 ? `+$${game.winnings}` :
-                                                            game.winnings < 0 ? `-$${Math.abs(game.winnings)}` :
+                                                        {game.winnings > 0 ? `+${game.winnings}` :
+                                                            game.winnings < 0 ? `-${Math.abs(game.winnings)}` :
                                                                 '$0'}
                                                     </p>
                                                 </div>
@@ -166,16 +226,41 @@ export default function HistoryPage() {
                                 ))}
                             </div>
 
-                            {/* Load More Button (only for logged-in users) */}
-                            {!isGuest && hasMore && (
-                                <div className="flex justify-center mt-6">
+                            {/* Pagination */}
+                            {totalPages > 1 && (
+                                <div className="flex justify-center items-center gap-2 mt-8">
                                     <button
-                                        type="button"
-                                        onClick={loadMore}
-                                        disabled={loadingMore}
-                                        className="px-6 py-2 bg-[#ffb5c0] hover:bg-[#ff9eb0] text-white text-sm rounded-full transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                        onClick={() => goToPage(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                                     >
-                                        {loadingMore ? "Loading..." : "Load More"}
+                                        ← Prev
+                                    </button>
+
+                                    {getPageNumbers().map((page, index) => (
+                                        page === '...' ? (
+                                            <span key={`ellipsis-${index}`} className="px-2 text-gray-400">...</span>
+                                        ) : (
+                                            <button
+                                                key={page}
+                                                onClick={() => goToPage(page as number)}
+                                                className={`px-3 py-1.5 text-sm rounded transition-colors ${
+                                                    currentPage === page
+                                                        ? 'bg-[#ffb5c0] text-white'
+                                                        : 'text-gray-600 hover:bg-gray-100'
+                                                }`}
+                                            >
+                                                {page}
+                                            </button>
+                                        )
+                                    ))}
+
+                                    <button
+                                        onClick={() => goToPage(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                        className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        Next →
                                     </button>
                                 </div>
                             )}
@@ -184,17 +269,17 @@ export default function HistoryPage() {
                             <div className="mt-8 pt-6 border-t border-gray-100">
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-gray-400">
-                                        Total Games: <span className="text-gray-700">{history.length}</span>
+                                        Showing {((currentPage - 1) * ITEMS_PER_PAGE) + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, totalGames)} of {totalGames} games
                                     </span>
                                     <div className="flex gap-4">
                                         <span className="text-gray-400">
-                                            Wins: <span className="text-green-600">{history.filter((g: any) => g.result === "win").length}</span>
+                                            Wins: <span className="text-green-600">{(isGuest ? guestHistory : []).filter((g: any) => g.result === "win").length}</span>
                                         </span>
                                         <span className="text-gray-400">
-                                            Losses: <span className="text-red-600">{history.filter((g: any) => g.result === "lose").length}</span>
+                                            Losses: <span className="text-red-600">{(isGuest ? guestHistory : []).filter((g: any) => g.result === "lose").length}</span>
                                         </span>
                                         <span className="text-gray-400">
-                                            Pushes: <span className="text-yellow-600">{history.filter((g: any) => g.result === "push").length}</span>
+                                            Pushes: <span className="text-yellow-600">{(isGuest ? guestHistory : []).filter((g: any) => g.result === "push").length}</span>
                                         </span>
                                     </div>
                                 </div>
