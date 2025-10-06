@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
 
         await dynamo.send(
             new PutCommand({
-                TableName: process.env.GAME_HISTORY_TABLE,
+                TableName: process.env.DYNAMO_HISTORY_TABLE,
                 Item: gameHistory
             })
         );

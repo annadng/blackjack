@@ -1,35 +1,68 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { dynamo } from "@/lib/dynamoClient";
-import { UpdateCommand } from "@aws-sdk/lib-dynamodb";
+import { UpdateCommand, GetCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
 
-export async function POST(req: Request) {
+export async function POST(request: NextRequest) {
     try {
-        const { username, amount } = await req.json();
+        const { username, amount } = await request.json();
 
-        if (!username || !amount) {
-            return NextResponse.json({ error: "Missing username or amount" }, { status: 400 });
+        if (!username || !amount || amount <= 0) {
+            return NextResponse.json(
+                { error: "Invalid username or amount" },
+                { status: 400 }
+            );
         }
 
-        // Increase chip balance
-        const command = new UpdateCommand({
-            TableName: process.env.DYNAMO_USERS_TABLE!, // BlackjackUsers
-            Key: { username },
-            UpdateExpression: "SET chips = if_not_exists(chips, :zero) + :amount",
-            ExpressionAttributeValues: {
-                ":amount": amount,
-                ":zero": 0,
-            },
-            ReturnValues: "UPDATED_NEW",
-        });
+        // Check if user exists
+        const userResult = await dynamo.send(
+            new GetCommand({
+                TableName: process.env.DYNAMO_USERS_TABLE,
+                Key: { username }
+            })
+        );
 
-        const result = await dynamo.send(command);
+        if (!userResult.Item) {
+            // Create new user with the purchased chips
+            await dynamo.send(
+                new PutCommand({
+                    TableName: process.env.DYNAMO_USERS_TABLE,
+                    Item: {
+                        username,
+                        chips: amount,
+                        createdAt: Date.now()
+                    }
+                })
+            );
+
+            return NextResponse.json({
+                success: true,
+                newBalance: amount
+            });
+        }
+
+        // Add chips to existing user
+        const result = await dynamo.send(
+            new UpdateCommand({
+                TableName: process.env.DYNAMO_USERS_TABLE,
+                Key: { username },
+                UpdateExpression: "SET chips = if_not_exists(chips, :zero) + :amount",
+                ExpressionAttributeValues: {
+                    ":amount": amount,
+                    ":zero": 0
+                },
+                ReturnValues: "ALL_NEW"
+            })
+        );
 
         return NextResponse.json({
             success: true,
-            newBalance: result.Attributes?.chips,
+            newBalance: result.Attributes?.chips || 0
         });
-    } catch (err) {
-        console.error("Error adding chips:", err);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    } catch (error) {
+        console.error("Error adding chips:", error);
+        return NextResponse.json(
+            { error: "Failed to add chips" },
+            { status: 500 }
+        );
     }
 }

@@ -1,43 +1,43 @@
-"use client";
+import { useState, useEffect, useCallback } from "react";
 
-import { useEffect, useState } from "react";
+export function useChips(username: string | null | undefined, guestChips?: number, isGuestLoaded?: boolean) {
+    const [currentChips, setCurrentChips] = useState(0);
+    const [loading, setLoading] = useState(false);
+    const isGuest = !username || username.startsWith("guest-");
 
-export function useChips(
-    username: string | null | undefined,
-    guestChips: number = 0,
-    isLoaded: boolean = false
-) {
-    const [currentChips, setCurrentChips] = useState<number>(0);
-    const isGuest = !username;
+    const fetchChips = useCallback(async () => {
+        if (!username) {
+            setCurrentChips(0);
+            return;
+        }
+
+        // If it's a guest and we have guestChips loaded, use those
+        if (isGuest && typeof guestChips === "number" && isGuestLoaded) {
+            setCurrentChips(guestChips);
+            return;
+        }
+
+        // Otherwise fetch from API
+        setLoading(true);
+        try {
+            const res = await fetch(`/api/chips/balance?username=${username}`);
+            const data = await res.json();
+            setCurrentChips(data.chips ?? 0);
+        } catch (err) {
+            console.error("Failed to fetch chips:", err);
+            setCurrentChips(0);
+        } finally {
+            setLoading(false);
+        }
+    }, [username, guestChips, isGuestLoaded, isGuest]);
 
     useEffect(() => {
+        fetchChips();
+    }, [fetchChips]);
 
-        if (isGuest && isLoaded) {
-            // For guests, use the guestChips value
-            setCurrentChips(guestChips);
-        } else if (username) {
-            // For logged-in users, fetch from API
-            console.log('Fetching chips for user:', username);
-            fetch(`/api/chips/balance?username=${username}`)
-                .then(res => res.json())
-                .then(data => setCurrentChips(data.chips))
-                .catch(err => console.error("Failed to fetch chips:", err));
-        }
-    }, [isGuest, username, guestChips, isLoaded]);
-
-    const refetchChips = async () => {
-        if (isGuest && isLoaded) {
-            setCurrentChips(guestChips);
-        } else if (username) {
-            try {
-                const res = await fetch(`/api/chips/balance?username=${username}`);
-                const data = await res.json();
-                setCurrentChips(data.chips);
-            } catch (err) {
-                console.error("Failed to fetch chips:", err);
-            }
-        }
+    const refetchChips = () => {
+        fetchChips();
     };
 
-    return { currentChips, refetchChips };
+    return { currentChips, loading, refetchChips };
 }

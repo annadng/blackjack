@@ -1,72 +1,55 @@
 import { useState, useEffect, useCallback } from "react";
-import type {GameHistory, Card} from "@/types";
+import type { Card } from "@/types";
 
 const ITEMS_PER_PAGE = 10;
 
-export function useGameHistory(username: string | null | undefined) {
-    const [allHistory, setAllHistory] = useState<GameHistory[]>([]);
+export function useGameHistory(username?: string | null) {
+    const [history, setHistory] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [lastKey, setLastKey] = useState<string | null>(null);
 
-    const fetchAllHistory = useCallback(async () => {
-        if (!username) {
-            setLoading(false);
-            return;
-        }
-
-        try {
-            setLoading(true);
-            let allGames: GameHistory[] = [];
-            let lastKey: string | null = null;
-            let hasMore = true;
-
-            // Fetch all pages
-            while (hasMore) {
-                const url = new URL("/api/game/history", window.location.origin);
-                url.searchParams.set("username", username);
-                url.searchParams.set("limit", "100"); // Fetch larger chunks
-
-                if (lastKey) {
-                    url.searchParams.set("lastKey", lastKey);
-                }
-
-                const res = await fetch(url.toString());
-                const data = await res.json();
-
-                if (res.ok) {
-                    allGames = [...allGames, ...data.games];
-                    hasMore = data.hasMore;
-                    lastKey = data.lastKey;
-                } else {
-                    setError(data.error || "Failed to load history");
-                    hasMore = false;
-                }
+    const fetchHistory = useCallback(
+        async (page: number = 1) => {
+            if (!username) {
+                setLoading(false);
+                return;
             }
 
-            setAllHistory(allGames);
-        } catch (err) {
-            console.error("Failed to fetch game history:", err);
-            setError("Failed to load history");
-        } finally {
-            setLoading(false);
-        }
-    }, [username]);
+            setLoading(true);
+            setError(null);
+            try {
+                const limit = ITEMS_PER_PAGE;
+                const params = new URLSearchParams({
+                    username,
+                    limit: limit.toString()
+                });
 
-    useEffect(() => {
-        fetchAllHistory();
-    }, [fetchAllHistory]);
+                if (lastKey) {
+                    params.append('lastKey', lastKey);
+                }
 
-    const totalPages = Math.ceil(allHistory.length / ITEMS_PER_PAGE);
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const endIndex = startIndex + ITEMS_PER_PAGE;
-    const paginatedHistory = allHistory.slice(startIndex, endIndex);
+                const res = await fetch(`/api/history?${params}`);
+                const data = await res.json();
+
+                setHistory(data.games || []);
+                setTotalPages(Math.ceil((data.count ?? 0) / ITEMS_PER_PAGE));
+                setCurrentPage(page);
+                setLastKey(data.lastKey || null);
+            } catch (err: any) {
+                console.error("Failed to fetch history:", err);
+                setError("Failed to fetch game history");
+            } finally {
+                setLoading(false);
+            }
+        },
+        [username, lastKey]
+    );
 
     const goToPage = (page: number) => {
-        if (page >= 1 && page <= totalPages) {
-            setCurrentPage(page);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
+        fetchHistory(page);
     };
 
     const saveGame = async (gameData: {
@@ -88,22 +71,24 @@ export function useGameHistory(username: string | null | undefined) {
 
             if (res.ok) {
                 // Refresh history after saving
-                fetchAllHistory();
-                setCurrentPage(1); // Go to first page to see new game
+                fetchHistory(1);
             }
         } catch (err) {
             console.error("Failed to save game:", err);
         }
     };
 
+    useEffect(() => {
+        fetchHistory(1);
+    }, [username]); // Only depend on username, not fetchHistory to avoid loops
+
     return {
-        history: paginatedHistory,
-        allHistory,
+        history,
         loading,
         error,
-        saveGame,
         currentPage,
         totalPages,
-        goToPage
+        goToPage,
+        saveGame
     };
 }
