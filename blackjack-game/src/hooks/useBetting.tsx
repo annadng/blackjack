@@ -21,10 +21,5 @@ export function useBetting() {
         return true;
     };
 
-    return {
-        bet,
-        addBet,
-        resetBet,
-        validateBet,
-    };
+    return {bet, addBet, resetBet, validateBet};
 }

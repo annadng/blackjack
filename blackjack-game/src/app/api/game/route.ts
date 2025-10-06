@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
             // Mark game as finished
             await dynamo.send(
                 new UpdateCommand({
-                    TableName: process.env.GAME_STATE_TABLE || "blackjack-game-state",
+                    TableName: process.env.GAME_STATE_TABLE,
                     Key: { gameId },
                     UpdateExpression:
                         "SET #status = :status, dealerCards = :dcards, playerTotal = :ptotal, dealerTotal = :dtotal, result = :result",

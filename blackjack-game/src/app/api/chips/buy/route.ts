@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
         // Increase chip balance
         const command = new UpdateCommand({
-            TableName: process.env.DYNAMO_USERS_TABLE!, // e.g. BlackjackUsers
+            TableName: process.env.DYNAMO_USERS_TABLE!, // BlackjackUsers
             Key: { username },
             UpdateExpression: "SET chips = if_not_exists(chips, :zero) + :amount",
             ExpressionAttributeValues: {
