@@ -11,80 +11,108 @@ export function useBlackjack() {
     const [playerTotal, setPlayerTotal] = useState(0);
     const [gameActive, setGameActive] = useState(false);
     const [result, setResult] = useState<GameResult>(null);
+    const [gameId, setGameId] = useState<string | null>(null);
 
-    const drawCard = (): Card => {
-        const names = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
-        const name = names[Math.floor(Math.random() * names.length)];
-        let value: number;
-        if (["J", "Q", "K"].includes(name)) value = 10;
-        else if (name === "A") value = 11;
-        else value = parseInt(name);
-        return { name, value };
-    };
+    const dealInitialCards = async (username: string, bet: number) => {
+        try {
+            const response = await fetch("/api/game", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username,
+                    action: "deal",
+                    bet,
+                }),
+            });
 
-    const calculateTotal = (cards: Card[]) => {
-        let total = cards.reduce((sum, c) => sum + c.value, 0);
-        let aces = cards.filter((c) => c.name === "A").length;
-        while (total > 21 && aces > 0) {
-            total -= 10;
-            aces--;
-        }
-        return total;
-    };
+            const data = await response.json();
 
-    const dealInitialCards = () => {
-        const pCards = [drawCard(), drawCard()];
-        const dCards = [drawCard()];
+            if (!response.ok) {
+                alert(data.error || "Failed to start game");
+                return false;
+            }
 
-        setPlayerCards(pCards);
-        setDealerCards(dCards);
-        setPlayerTotal(calculateTotal(pCards));
-        setDealerTotal(calculateTotal(dCards));
-        setGameActive(true);
-        setResult(null);
-    };
+            setGameId(data.gameId);
+            setPlayerCards(data.playerCards);
+            setDealerCards(data.dealerCards);
+            setPlayerTotal(data.playerTotal);
+            setDealerTotal(data.dealerTotal);
+            setGameActive(true);
+            setResult(null);
 
-    const hit = () => {
-        const card = drawCard();
-        const newPlayerCards = [...playerCards, card];
-        const newTotal = calculateTotal(newPlayerCards);
-
-        setPlayerCards(newPlayerCards);
-        setPlayerTotal(newTotal);
-
-        if (newTotal > 21) {
-            endGame("lose");
+            return true;
+        } catch (error) {
+            console.error("Failed to deal cards:", error);
+            alert("Failed to start game");
+            return false;
         }
     };
 
-    const stand = () => {
-        let newDealerCards = [...dealerCards];
+    const hit = async (username: string) => {
+        if (!gameId) return;
 
-        while (calculateTotal(newDealerCards) < 17) {
-            newDealerCards.push(drawCard());
+        try {
+            const response = await fetch("/api/game", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username,
+                    action: "hit",
+                    gameId,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                alert(data.error || "Failed to hit");
+                return;
+            }
+
+            setPlayerCards(data.playerCards);
+            setPlayerTotal(data.playerTotal);
+            setDealerCards(data.dealerCards);
+            setDealerTotal(data.dealerTotal);
+
+            if (data.result) {
+                setResult(data.result);
+                setGameActive(false);
+            }
+        } catch (error) {
+            console.error("Failed to hit:", error);
         }
-
-        const dealerScore = calculateTotal(newDealerCards);
-        setDealerCards(newDealerCards);
-        setDealerTotal(dealerScore);
-
-        const playerScore = playerTotal;
-        let gameResult: GameResult;
-
-        if (dealerScore > 21 || playerScore > dealerScore) {
-            gameResult = "win";
-        } else if (dealerScore > playerScore) {
-            gameResult = "lose";
-        } else {
-            gameResult = "push";
-        }
-
-        endGame(gameResult);
     };
 
-    const endGame = (outcome: GameResult) => {
-        setResult(outcome);
-        setGameActive(false);
+    const stand = async (username: string) => {
+        if (!gameId) return;
+
+        try {
+            const response = await fetch("/api/game", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    username,
+                    action: "stand",
+                    gameId,
+                }),
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                alert(data.error || "Failed to stand");
+                return;
+            }
+
+            setPlayerCards(data.playerCards);
+            setDealerCards(data.dealerCards);
+            setPlayerTotal(data.playerTotal);
+            setDealerTotal(data.dealerTotal);
+            setResult(data.result);
+            setGameActive(false);
+        } catch (error) {
+            console.error("Failed to stand:", error);
+        }
     };
 
     const resetGame = () => {
@@ -94,6 +122,7 @@ export function useBlackjack() {
         setDealerTotal(0);
         setResult(null);
         setGameActive(false);
+        setGameId(null);
     };
 
     return {
@@ -103,6 +132,7 @@ export function useBlackjack() {
         playerTotal,
         gameActive,
         result,
+        gameId,
         dealInitialCards,
         hit,
         stand,
