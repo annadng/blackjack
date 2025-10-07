@@ -11,13 +11,7 @@ interface BuyChipsModalProps {
     onGuestAddChips?: (amount: number) => Promise<void>;
 }
 
-export default function BuyChipsModal({
-                                          isOpen,
-                                          onClose,
-                                          username,
-                                          isGuest = false,
-                                          onSuccess,
-                                          onGuestAddChips
+export default function BuyChipsModal({isOpen, onClose, username, isGuest = false, onSuccess, onGuestAddChips
                                       }: BuyChipsModalProps) {
     const [amount, setAmount] = useState(100);
     const [loading, setLoading] = useState(false);
@@ -33,7 +27,7 @@ export default function BuyChipsModal({
         try {
             if (isGuest && onGuestAddChips) {
                 await onGuestAddChips(amount);
-                if (onSuccess) onSuccess(amount); // ✅ For guests, return amount added
+                // Don't call onSuccess for guests - the state update will trigger useChips automatically
             } else if (username) {
                 const res = await fetch("/api/chips/buy", {
                     method: "POST",

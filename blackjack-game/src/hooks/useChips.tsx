@@ -5,12 +5,19 @@ export function useChips(username: string | null | undefined, guestChips?: numbe
     const [loading, setLoading] = useState(false);
     const isGuest = !username || username.startsWith("guest-");
 
+    useEffect(() => {
+        if (isGuest && isGuestLoaded) {
+            setCurrentChips(guestChips ?? 0);
+        }
+    }, [guestChips, isGuestLoaded, isGuest]);
+
+
     const fetchChips = useCallback(async () => {
-        if (isGuest && typeof guestChips === "number" && isGuestLoaded) {
-            setCurrentChips(guestChips);
+        if (isGuest && isGuestLoaded) {
+            setCurrentChips(guestChips ?? 0);
             return;
         }
-        
+
         if (!username) {
             setCurrentChips(0);
             return;

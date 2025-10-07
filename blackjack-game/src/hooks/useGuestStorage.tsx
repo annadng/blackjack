@@ -1,126 +1,70 @@
-import { useState, useEffect } from "react";
-import type { Card } from "@/types";
-import {getGuestId} from "@/utils/guest";
+import { useEffect, useState } from "react";
 
 export function useGuestStorage() {
-    const [guestChips, setGuestChips] = useState<number>(0);
+    const [guestChips, setGuestChips] = useState(0);
     const [guestHistory, setGuestHistory] = useState<any[]>([]);
     const [isLoaded, setIsLoaded] = useState(false);
-    const guestId = getGuestId();
 
-    // Load guest data from DynamoDB on mount
+    // Load guest data from sessionStorage 
     useEffect(() => {
-        if (!guestId) return;
+        const storedChips = sessionStorage.getItem("blackjack_guest_chips");
+        const storedHistory = sessionStorage.getItem("blackjack_guest_history");
 
-        const fetchGuestData = async () => {
-            try {
-                // Fetch chips
-                const chipsRes = await fetch(`/api/chips/balance?username=${guestId}`);
-                const chipsData = await chipsRes.json();
-                setGuestChips(chipsData.chips || 0);
+        if (storedChips) {
+            setGuestChips(parseInt(storedChips, 10));
+        } else {
+            setGuestChips(0); // starting amount
+        }
 
-                // Fetch game history
-                const historyRes = await fetch(`/api/history?username=${guestId}&limit=50`);
-                const historyData = await historyRes.json();
-                setGuestHistory(historyData.games || []);
-            } catch (err) {
-                console.error("Failed to load guest data:", err);
-            } finally {
-                setIsLoaded(true);
-            }
-        };
+        if (storedHistory) {
+            setGuestHistory(JSON.parse(storedHistory));
+        }
 
-        fetchGuestData();
-    }, [guestId]);
+        setIsLoaded(true);
+    }, []);
 
-    const updateGuestChips = (amount: number) => {
-        setGuestChips(amount);
-    };
+    // Save to sessionStorage when chips change
+    useEffect(() => {
+        if (isLoaded) {
+            sessionStorage.setItem("blackjack_guest_chips", guestChips.toString());
+        }
+    }, [guestChips, isLoaded]);
 
+    // Save to sessionStorage when history changes
+    useEffect(() => {
+        if (isLoaded) {
+            sessionStorage.setItem("blackjack_guest_history", JSON.stringify(guestHistory));
+        }
+    }, [guestHistory, isLoaded]);
+
+    // Functions to modify guest data
     const addGuestChips = async (amount: number) => {
-        try {
-            const res = await fetch("/api/chips/buy", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    username: guestId,
-                    amount
-                })
-            });
-            const data = await res.json();
-            setGuestChips(data.newBalance || guestChips + amount);
-        } catch (err) {
-            console.error("Failed to add chips:", err);
-        }
+        setGuestChips(prev => prev + amount);
     };
 
-    const deductGuestChips = async (amount: number): Promise<boolean> => {
+    const deductGuestChips = async (amount: number) => {
         if (guestChips < amount) return false;
-
-        try {
-            const res = await fetch("/api/chips/deduct", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    username: guestId,
-                    amount
-                })
-            });
-
-            if (!res.ok) return false;
-
-            const data = await res.json();
-            setGuestChips(data.newBalance || guestChips - amount);
-            return true;
-        } catch (err) {
-            console.error("Failed to deduct chips:", err);
-            return false;
-        }
+        setGuestChips(prev => prev - amount);
+        return true;
     };
 
-    const addGuestHistory = async (game: {
-        id: string;
-        username: string;
-        timestamp: number;
-        bet: number;
-        result: "win" | "lose" | "push";
-        playerTotal: number;
-        dealerTotal: number;
-        playerCards: Card[];
-        dealerCards: Card[];
-        winnings: number;
-    }) => {
-        try {
-            const res = await fetch("/api/game/save", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(game)
-            });
-
-            if (res.ok) {
-                // Add to local state optimistically
-                setGuestHistory((prev) => [game, ...prev].slice(0, 50));
-            }
-        } catch (err) {
-            console.error("Failed to save guest game:", err);
-        }
+    const addGuestHistory = (entry: any) => {
+        setGuestHistory(prev => [...prev, entry]);
     };
 
-    const clearGuestData = () => {
-        sessionStorage.removeItem("guestId");
+    const resetGuestData = () => {
+        sessionStorage.removeItem("blackjack_guest_history");
+        sessionStorage.removeItem("blackjack_guest_chips");
         setGuestChips(0);
         setGuestHistory([]);
     };
 
     return {
-        guestId,
         guestChips,
-        guestHistory,
-        updateGuestChips,
-        addGuestChips,
-        deductGuestChips,
-        addGuestHistory,
-        clearGuestData,
         isLoaded,
+        deductGuestChips,
+        addGuestChips,
+        addGuestHistory,
+        resetGuestData
     };
 }
