@@ -7,6 +7,7 @@ import Navigation from "@/components/Navigation";
 import BuyChipsModal from "@/components/BuyChipsModal";
 import { useChips } from "@/hooks/useChips";
 import { useGameHistory } from "@/hooks/useGameHistory";
+import { useGuestStorage } from "@/hooks/useGuestStorage";
 import { getGuestId } from "@/utils/guest";
 
 export default function HistoryPage() {
@@ -19,18 +20,24 @@ export default function HistoryPage() {
 
     const [showBuyChips, setShowBuyChips] = useState(false);
 
-    // Chips hook (works for guests too)
-    const { currentChips, refetchChips } = useChips(username);
+    // Guest storage for guest users
+    const { guestChips, guestHistory, isLoaded, addGuestChips } = useGuestStorage();
 
-    // Game history hook (fetches from DynamoDB)
+    // Chips hook
+    const { currentChips, refetchChips } = useChips(username, guestChips, isLoaded);
+
+    // Game history hook (fetches from DynamoDB for logged-in users)
     const {
-        history,
+        history: serverHistory,
         loading: historyLoading,
         error: historyError,
         currentPage,
         totalPages,
         goToPage
-    } = useGameHistory(username);
+    } = useGameHistory(isGuest ? undefined : username);
+
+    // Use guest history or server history based on login status
+    const history = isGuest ? guestHistory : serverHistory;
 
     const formatDate = (timestamp: number) => {
         return new Date(timestamp).toLocaleString("en-US", {
@@ -266,6 +273,7 @@ export default function HistoryPage() {
                 username={username}
                 isGuest={isGuest}
                 onSuccess={handleBuyChipsSuccess}
+                onGuestAddChips={addGuestChips}
             />
         </div>
     );

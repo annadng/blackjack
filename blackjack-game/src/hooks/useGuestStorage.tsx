@@ -61,6 +61,7 @@ export function useGuestStorage() {
 
     return {
         guestChips,
+        guestHistory,
         isLoaded,
         deductGuestChips,
         addGuestChips,
