@@ -37,7 +37,9 @@ export default function HistoryPage() {
     } = useGameHistory(isGuest ? undefined : username);
 
     // Use guest history or server history based on login status
-    const history = isGuest ? guestHistory : serverHistory;
+    const history = (isGuest ? guestHistory : serverHistory)
+        .slice() 
+        .sort((a, b) => b.timestamp - a.timestamp);
 
     const formatDate = (timestamp: number) => {
         return new Date(timestamp).toLocaleString("en-US", {
