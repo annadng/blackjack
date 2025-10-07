@@ -3,7 +3,7 @@ export interface Card {
     value: number;
 }
 
-export type GameResult = "win" | "lose" | "push" | null;
+export type GameResult = "win" | "lose" | "push" | "blackjack" | null;
 export type ActionType = "hit" | "stand" | null;
 
 export interface GameHistory {
@@ -11,7 +11,7 @@ export interface GameHistory {
     username: string;
     timestamp: number;
     bet: number;
-    result: "win" | "lose" | "push";
+    result: "win" | "lose" | "push" | "blackjack";
     playerTotal: number;
     dealerTotal: number;
     playerCards: Card[];
