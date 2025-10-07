@@ -30,15 +30,41 @@ export default function HistoryPage() {
         history: serverHistory,
         loading: historyLoading,
         error: historyError,
-        currentPage,
-        totalPages,
-        goToPage
+        currentPage: serverCurrentPage,
+        totalPages: serverTotalPages,
+        goToPage: serverGoToPage
     } = useGameHistory(isGuest ? undefined : username);
 
+    // Guest pagination state
+    const [guestCurrentPage, setGuestCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 10;
+
     // Use guest history or server history based on login status
-    const history = (isGuest ? guestHistory : serverHistory)
-        .slice() 
+    const sortedHistory = (isGuest ? guestHistory : serverHistory)
+        .slice()
         .sort((a, b) => b.timestamp - a.timestamp);
+
+    // Pagination
+    const currentPage = isGuest ? guestCurrentPage : serverCurrentPage;
+    const totalPages = isGuest
+        ? Math.ceil(sortedHistory.length / ITEMS_PER_PAGE)
+        : serverTotalPages;
+
+    const goToPage = (page: number) => {
+        if (isGuest) {
+            setGuestCurrentPage(page);
+        } else {
+            serverGoToPage(page);
+        }
+    };
+
+    // Get paginated history
+    const history = isGuest
+        ? sortedHistory.slice(
+            (currentPage - 1) * ITEMS_PER_PAGE,
+            currentPage * ITEMS_PER_PAGE
+        )
+        : sortedHistory;
 
     const formatDate = (timestamp: number) => {
         return new Date(timestamp).toLocaleString("en-US", {
@@ -87,7 +113,7 @@ export default function HistoryPage() {
         return pages;
     };
 
-    const totalGames = history.length;
+    const totalGames = sortedHistory.length;
 
     // Ensure hydration consistency
     const [mounted, setMounted] = useState(false);
