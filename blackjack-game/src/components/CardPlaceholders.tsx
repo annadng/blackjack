@@ -60,15 +60,14 @@ export default function CardPlaceholders({
                                 <span className="text-sm text-pink-500 -mt-0.5">♠</span>
                             </div>
 
-                            {/* Subtle border */}
-                            <div className="absolute inset-0 border border-gray-200 rounded-xl pointer-events-none"></div>
+                            {/* Border */}
+                            <div className="absolute inset-0 border-1 border-gray-200 rounded-xl pointer-events-none"></div>
                         </div>
                     ))
                 )}
             </div>
-
-            {/* Label with score */}
-            <div className="px-4 py-1 bg-white/20 backdrop-blur-sm rounded border-2 border-pink-500">
+            
+            <div className="px-4 py-1 bg- backdrop-blur-sm rounded">
                 <p className="text-black font-semibold text-sm">
                     {showScore ? `${total} ` : ""}
                     {label}

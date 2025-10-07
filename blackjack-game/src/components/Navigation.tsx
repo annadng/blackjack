@@ -52,19 +52,17 @@ export default function Navigation({ chips, onHistoryClick, onBuyChipsClick }: N
                     </button>
 
                     {chips >= 0 && (
-                        <div className="flex items-center gap-3">
-                            <div className="px-4 py-2 rounded-full bg-gradient-to-r from-pink-500 to-pink-600">
-                                <span className={`text-white font-semibold ${shouldPulse ? "animate-pulse" : ""}`}>
-                                    ${chips.toLocaleString()}
-                                </span>
-                            </div>
-
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-pink-500 to-pink-600">
+                            <span className="text-xl">💰</span>
+                            <span className={`text-white font-semibold ${shouldPulse ? "animate-pulse" : ""}`}>
+                                ${chips.toLocaleString()}
+                            </span>
                             {onBuyChipsClick && (
                                 <button
                                     onClick={onBuyChipsClick}
-                                    className="px-3 py-2 rounded-full bg-white/20 hover:bg-white/30 text-white text-sm font-medium transition-all"
+                                    className="ml-2 w-6 h-6 flex items-center justify-center rounded-full bg-white/30 hover:bg-white/40 text-white font-bold transition-all"
                                 >
-                                    + Add
+                                    +
                                 </button>
                             )}
                         </div>
