@@ -8,19 +8,19 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing hand data" }, { status: 400 });
         }
 
-        const prompt = `You are a blackjack assistant.
-      The player's hand is ${playerHand.join(", ")} 
-      and the dealer's visible card is ${dealerCard}.
-      Recommend the optimal move: Hit or Stand.
-      Respond with only "Hit" or "Stand".`;
+        const prompt = `You are a blackjack strategy assistant following basic blackjack strategy.
+The player's hand is: ${playerHand.join(", ")}
+The dealer's visible card is: ${dealerCard}
 
+Based on basic blackjack strategy, should the player Hit or Stand?
+Respond with ONLY the word "hit" or "stand" (lowercase, no punctuation or explanation).`;
+        
         const response = await fetch(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent",
+            `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
             {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-goog-api-key": process.env.GEMINI_API_KEY!,
                 },
                 body: JSON.stringify({
                     contents: [
@@ -32,14 +32,34 @@ export async function POST(req: Request) {
             }
         );
 
+        if (!response.ok) {
+            console.error("Gemini API error:", await response.text());
+            return NextResponse.json({ error: "AI service error" }, { status: 500 });
+        }
+
         const data = await response.json();
+        console.log("Gemini response:", JSON.stringify(data, null, 2));
 
-        const recommendation =
-            data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "Unknown";
+        const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
 
+        if (!rawText) {
+            console.error("No text in response");
+            return NextResponse.json({ recommendation: "stand" });
+        }
+
+        // Extract hit or stand from the response
+        const normalized = rawText.toLowerCase();
+        let recommendation = "stand"; // default
+
+        if (normalized.includes("hit")) {
+            recommendation = "hit";
+        } else if (normalized.includes("stand")) {
+            recommendation = "stand";
+        }
+        
         return NextResponse.json({ recommendation });
     } catch (err) {
         console.error("Gemini AI error:", err);
-        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+        return NextResponse.json({ recommendation: "stand" }, { status: 200 });
     }
 }
