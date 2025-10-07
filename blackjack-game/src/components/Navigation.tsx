@@ -41,26 +41,26 @@ export default function Navigation({ chips, onHistoryClick, onBuyChipsClick }: N
 
     return (
         <nav className="bg-white/10 backdrop-blur-lg border-b border-white/20">
-            <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div className="max-w-6xl mx-auto px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between">
                 {/* Logo and Chips */}
-                <div className="flex items-center gap-8">
+                <div className="flex items-center gap-2 sm:gap-4 md:gap-8">
                     <button
                         onClick={navigateHome}
-                        className="text-2xl font-bold text-black hover:text-pink-200 transition-colors tracking-tight"
+                        className="text-lg sm:text-xl md:text-2xl font-bold text-black hover:text-pink-200 transition-colors tracking-tight"
                     >
-                        ♠ Blackjack
+                        ♠<span className="hidden sm:inline"> Blackjack</span>
                     </button>
 
                     {chips >= 0 && (
-                        <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-pink-500 to-pink-600">
-                            <span className="text-xl">💰</span>
-                            <span className={`text-white font-semibold ${shouldPulse ? "animate-pulse" : ""}`}>
+                        <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-pink-500 to-pink-600">
+                            <span className="text-base sm:text-xl">💰</span>
+                            <span className={`text-white text-sm sm:text-base font-semibold ${shouldPulse ? "animate-pulse" : ""}`}>
                                 ${chips.toLocaleString()}
                             </span>
                             {onBuyChipsClick && (
                                 <button
                                     onClick={onBuyChipsClick}
-                                    className="ml-2 w-6 h-6 flex items-center justify-center rounded-full bg-white/30 hover:bg-white/40 text-white font-bold transition-all"
+                                    className="ml-1 sm:ml-2 w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-white/30 hover:bg-white/40 text-white text-sm sm:text-base font-bold transition-all"
                                 >
                                     +
                                 </button>
@@ -70,16 +70,16 @@ export default function Navigation({ chips, onHistoryClick, onBuyChipsClick }: N
                 </div>
 
                 {/* Navigation Links & Session */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-1 sm:gap-2 md:gap-4">
                     <button
                         onClick={navigateHome}
-                        className="px-4 py-2 text-black hover:text-white font-medium transition-colors"
+                        className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base text-black hover:text-white font-medium transition-colors"
                     >
                         Home
                     </button>
                     <button
                         onClick={handleHistoryClick}
-                        className="px-4 py-2 text-black hover:text-white font-medium transition-colors"
+                        className="px-2 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm md:text-base text-black hover:text-white font-medium transition-colors"
                     >
                         History
                     </button>
@@ -87,14 +87,14 @@ export default function Navigation({ chips, onHistoryClick, onBuyChipsClick }: N
                     {session ? (
                         <button
                             onClick={() => signOut()}
-                            className="px-6 py-2 bg-white/20 hover:bg-white/30 text-white rounded-full font-medium transition-all"
+                            className="px-3 sm:px-6 py-1.5 sm:py-2 bg-white/20 hover:bg-white/30 text-white text-xs sm:text-sm md:text-base rounded-full font-medium transition-all"
                         >
                             Logout
                         </button>
                     ) : (
                         <button
                             onClick={() => router.push("/login")}
-                            className="px-6 py-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white rounded-full font-medium transition-all"
+                            className="px-3 sm:px-6 py-1.5 sm:py-2 bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white text-xs sm:text-sm md:text-base rounded-full font-medium transition-all"
                         >
                             Login
                         </button>
