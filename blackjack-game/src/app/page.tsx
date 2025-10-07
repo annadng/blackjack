@@ -39,7 +39,7 @@ export default function GamePage() {
     const { currentChips, refetchChips } = useChips(username, guestChips, isLoaded);
     const [showBuyChips, setShowBuyChips] = useState(false);
     const { bet, addBet, resetBet, validateBet } = useBetting();
-    const { aiSuggestion, highlightAction, askAI, resetAI } = useAIAssistant();
+    const { aiSuggestion, highlightAction, loading: aiLoading, askAI, resetAI } = useAIAssistant();
     const { saveGame } = useGameHistory(username ?? undefined);
     const [showInsufficientChips, setShowInsufficientChips] = useState(false);
 
@@ -226,6 +226,7 @@ export default function GamePage() {
                                     onStand={handleStand}
                                     onAskAI={handleAskAI}
                                     highlightAction={highlightAction}
+                                    aiLoading={aiLoading}
                                 />
                             )}
 

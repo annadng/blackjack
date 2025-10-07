@@ -55,7 +55,7 @@ export function useGameHistory(username?: string | null) {
     const saveGame = async (gameData: {
         username: string;
         bet: number;
-        result: "win" | "lose" | "push";
+        result: "win" | "lose" | "push" | "blackjack";
         playerTotal: number;
         dealerTotal: number;
         playerCards: Card[];

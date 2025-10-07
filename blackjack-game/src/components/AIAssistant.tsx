@@ -21,11 +21,11 @@ export default function AIAssistant({ suggestion, playerTotal }: AIAssistantProp
 
     return (
         <div className="mt-2 text-center">
-            <div className="text-pink-800 font-bold text-lg">
-                AI suggests: {suggestion.toUpperCase()}
+            <div className="text-pink-600 font-bold text-lg">
+                AI suggests: {suggestion}
             </div>
             {explanation && (
-                <div className="text-pink-700 text-sm mt-1">
+                <div className="text-pink-600 text-sm mt-1">
                     {explanation}
                 </div>
             )}
