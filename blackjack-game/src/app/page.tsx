@@ -36,7 +36,7 @@ export default function GamePage() {
     const game = isGuest ? guestGame : serverGame;
 
     // Custom hooks
-    const { currentChips, refetchChips } = useChips(username, guestChips, isLoaded);
+    const { currentChips, loading: chipsLoading, refetchChips } = useChips(username, guestChips, isLoaded);
     const [showBuyChips, setShowBuyChips] = useState(false);
     const { bet, addBet, resetBet, validateBet } = useBetting();
     const { aiSuggestion, highlightAction, loading: aiLoading, askAI, resetAI } = useAIAssistant();
@@ -51,10 +51,10 @@ export default function GamePage() {
     useEffect(() => setMounted(true), []);
 
     useEffect(() => {
-        // Only save when game ends with valid data
-        if (game.result && bet > 0 && game.playerTotal > 0 && game.dealerTotal > 0) {
+        // Only save when game ends with valid data (guests only - logged-in users saved by server)
+        if (game.result && bet > 0 && game.playerTotal > 0 && game.dealerTotal > 0 && isGuest) {
             // Create unique identifier for this game
-            const gameId = `${game.result}-${game.playerTotal}-${game.dealerTotal}-${bet}-${Date.now()}`;
+            const gameId = `${game.result}-${game.playerTotal}-${game.dealerTotal}-${bet}`;
 
             // Check if we've already saved this exact game
             if (savedGameRef.current === gameId) {
@@ -68,45 +68,31 @@ export default function GamePage() {
                 game.result === "lose" ? -bet :
                 0;
 
-            if (isGuest) {
-                // Save to DynamoDB for guests
-                const gameData = {
-                    id: `guest-${Date.now()}`,
-                    username: "Guest",
-                    timestamp: Date.now(),
-                    bet,
-                    result: game.result,
-                    playerTotal: game.playerTotal,
-                    dealerTotal: game.dealerTotal,
-                    playerCards: game.playerCards,
-                    dealerCards: game.dealerCards,
-                    winnings
-                };
-                addGuestHistory(gameData);
+            // Save to sessionStorage for guests
+            const gameData = {
+                id: `guest-${Date.now()}`,
+                username: "Guest",
+                timestamp: Date.now(),
+                bet,
+                result: game.result,
+                playerTotal: game.playerTotal,
+                dealerTotal: game.dealerTotal,
+                playerCards: game.playerCards,
+                dealerCards: game.dealerCards,
+                winnings
+            };
+            addGuestHistory(gameData);
 
-                // Update guest chips
-                if (game.result === "blackjack") {
-                    addGuestChips(bet + bet * 1.5); // Return bet + 1.5x winnings = 2.5x total
-                } else if (game.result === "win") {
-                    addGuestChips(bet * 2); // Return bet + 1x winnings = 2x total
-                } else if (game.result === "push") {
-                    addGuestChips(bet); // Return bet only
-                }
-            } else if (username) {
-                // Save to database for logged-in users
-                saveGame({
-                    username,
-                    bet,
-                    result: game.result,
-                    playerTotal: game.playerTotal,
-                    dealerTotal: game.dealerTotal,
-                    playerCards: game.playerCards,
-                    dealerCards: game.dealerCards,
-                    winnings
-                });
+            // Update guest chips
+            if (game.result === "blackjack") {
+                addGuestChips(bet + bet * 1.5); // Return bet + 1.5x winnings = 2.5x total
+            } else if (game.result === "win") {
+                addGuestChips(bet * 2); // Return bet + 1x winnings = 2x total
+            } else if (game.result === "push") {
+                addGuestChips(bet); // Return bet only
             }
         }
-    }, [game.result, game.playerTotal, game.dealerTotal, bet, isGuest, username]);
+    }, [game.result, game.playerTotal, game.dealerTotal, bet, isGuest, addGuestHistory, addGuestChips]);
 
     // Reset saved game tracking when new game starts
     useEffect(() => {
@@ -114,6 +100,13 @@ export default function GamePage() {
             savedGameRef.current = null;
         }
     }, [game.result]);
+
+    // Refetch chips when game ends (for logged-in users)
+    useEffect(() => {
+        if (game.result && !isGuest && username) {
+            refetchChips();
+        }
+    }, [game.result, isGuest, username, refetchChips]);
 
     const handlePlaceBet = async () => {
         if (!validateBet()) return;
@@ -131,6 +124,8 @@ export default function GamePage() {
                 setShowInsufficientChips(true);
                 return;
             }
+            // Refetch chips after bet is placed
+            refetchChips();
         }
 
         resetAI();
@@ -216,6 +211,7 @@ export default function GamePage() {
                                         bet={bet}
                                         onSelectBet={addBet}
                                         onPlaceBet={handlePlaceBet}
+                                        disabled={chipsLoading}
                                     />
                                 </>
                             )}

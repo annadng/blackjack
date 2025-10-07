@@ -47,16 +47,16 @@ export async function POST(request: NextRequest) {
                     new UpdateCommand({
                         TableName: process.env.DYNAMO_USERS_TABLE!,
                         Key: { username },
-                        UpdateExpression: "SET chips = if_not_exists(chips, :zero) - :bet",
-                        ConditionExpression: "if_not_exists(chips, :zero) >= :bet",
+                        UpdateExpression: "SET chips = chips - :bet",
+                        ConditionExpression: "attribute_exists(chips) AND chips >= :bet",
                         ExpressionAttributeValues: {
                             ":bet": bet,
-                            ":zero": 0,
                         },
                         ReturnValues: "ALL_NEW",
                     })
                 );
             } catch (err) {
+                console.error("Chip deduction error:", err);
                 return NextResponse.json({ error: "Insufficient chips" }, { status: 400 });
             }
 
@@ -77,10 +77,9 @@ export async function POST(request: NextRequest) {
                     new UpdateCommand({
                         TableName: process.env.DYNAMO_USERS_TABLE!,
                         Key: { username },
-                        UpdateExpression: "SET chips = if_not_exists(chips, :zero) + :totalReturn",
+                        UpdateExpression: "SET chips = chips + :totalReturn",
                         ExpressionAttributeValues: {
                             ":totalReturn": totalReturn,
-                            ":zero": 0,
                         },
                     })
                 );
@@ -191,8 +190,8 @@ export async function POST(request: NextRequest) {
                     new UpdateCommand({
                         TableName: process.env.DYNAMO_STATES_TABLE!,
                         Key: { gameId },
-                        UpdateExpression: "SET #status = :status, playerCards = :cards, playerTotal = :total, result = :result",
-                        ExpressionAttributeNames: { "#status": "status" },
+                        UpdateExpression: "SET #status = :status, playerCards = :cards, playerTotal = :total, #result = :result",
+                        ExpressionAttributeNames: { "#status": "status", "#result": "result" },
                         ExpressionAttributeValues: {
                             ":status": "finished",
                             ":cards": playerCards,
@@ -276,10 +275,9 @@ export async function POST(request: NextRequest) {
                     new UpdateCommand({
                         TableName: process.env.DYNAMO_USERS_TABLE!,
                         Key: { username },
-                        UpdateExpression: "SET chips = if_not_exists(chips, :zero) + :amount",
+                        UpdateExpression: "SET chips = chips + :amount",
                         ExpressionAttributeValues: {
                             ":amount": amountToReturn,
-                            ":zero": 0,
                         },
                     })
                 );
@@ -291,8 +289,11 @@ export async function POST(request: NextRequest) {
                     TableName: process.env.DYNAMO_STATES_TABLE!,
                     Key: { gameId },
                     UpdateExpression:
-                        "SET #status = :status, dealerCards = :dcards, playerTotal = :ptotal, dealerTotal = :dtotal, result = :result",
-                    ExpressionAttributeNames: { "#status": "status" },
+                        "SET #status = :status, dealerCards = :dcards, playerTotal = :ptotal, dealerTotal = :dtotal, #result = :result",
+                    ExpressionAttributeNames: {
+                        "#status": "status",
+                        "#result": "result"
+                    },
                     ExpressionAttributeValues: {
                         ":status": "finished",
                         ":dcards": dealerCards,

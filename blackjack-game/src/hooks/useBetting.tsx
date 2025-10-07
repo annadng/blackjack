@@ -15,7 +15,7 @@ export function useBetting() {
 
     const validateBet = () => {
         if (bet <= 0) {
-            alert("You must select a bet amount before placing a bet.");
+            console.warn("No bet amount selected");
             return false;
         }
         return true;

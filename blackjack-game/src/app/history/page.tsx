@@ -32,8 +32,16 @@ export default function HistoryPage() {
         error: historyError,
         currentPage: serverCurrentPage,
         totalPages: serverTotalPages,
-        goToPage: serverGoToPage
+        goToPage: serverGoToPage,
+        refetchHistory
     } = useGameHistory(isGuest ? undefined : username);
+
+    // Refetch history when page becomes visible (for logged-in users)
+    useEffect(() => {
+        if (!isGuest && username) {
+            refetchHistory();
+        }
+    }, []);
 
     // Guest pagination state
     const [guestCurrentPage, setGuestCurrentPage] = useState(1);

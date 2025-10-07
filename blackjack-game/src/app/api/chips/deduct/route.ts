@@ -18,11 +18,10 @@ export async function POST(request: NextRequest) {
             new UpdateCommand({
                 TableName: process.env.DYNAMO_USERS_TABLE,
                 Key: { username },
-                UpdateExpression: "SET chips = if_not_exists(chips, :zero) - :amount",
-                ConditionExpression: "if_not_exists(chips, :zero) >= :amount",
+                UpdateExpression: "SET chips = chips - :amount",
+                ConditionExpression: "attribute_exists(chips) AND chips >= :amount",
                 ExpressionAttributeValues: {
-                    ":amount": amount,
-                    ":zero": 0
+                    ":amount": amount
                 },
                 ReturnValues: "ALL_NEW"
             })

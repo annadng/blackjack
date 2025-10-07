@@ -28,7 +28,7 @@ export function useBlackjack() {
             const data = await response.json();
 
             if (!response.ok) {
-                alert(data.error || "Failed to start game");
+                console.error("Failed to start game:", data.error);
                 return false;
             }
 
@@ -43,7 +43,6 @@ export function useBlackjack() {
             return true;
         } catch (error) {
             console.error("Failed to deal cards:", error);
-            alert("Failed to start game");
             return false;
         }
     };
@@ -65,7 +64,7 @@ export function useBlackjack() {
             const data = await response.json();
 
             if (!response.ok) {
-                alert(data.error || "Failed to hit");
+                console.error("Failed to hit:", data.error);
                 return;
             }
 
@@ -100,7 +99,7 @@ export function useBlackjack() {
             const data = await response.json();
 
             if (!response.ok) {
-                alert(data.error || "Failed to stand");
+                console.error("Failed to stand:", data.error);
                 return;
             }
 

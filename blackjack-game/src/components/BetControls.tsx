@@ -6,9 +6,10 @@ interface BetControlsProps {
     bet: number;
     onSelectBet: (amount: number) => void;
     onPlaceBet: () => void;
+    disabled?: boolean;
 }
 
-export default function BetControls({ bet, onSelectBet, onPlaceBet }: BetControlsProps) {
+export default function BetControls({ bet, onSelectBet, onPlaceBet, disabled }: BetControlsProps) {
     return (
         <>
             <div className="flex space-x-4">
@@ -27,9 +28,10 @@ export default function BetControls({ bet, onSelectBet, onPlaceBet }: BetControl
 
             <button
                 onClick={onPlaceBet}
-                className="px-8 py-2 bg-pink-600 text-white font-bold rounded shadow hover:bg-pink-700"
+                disabled={disabled}
+                className="px-8 py-2 bg-pink-600 text-white font-bold rounded shadow hover:bg-pink-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-                Place Bet
+                {disabled ? "Loading..." : "Place Bet"}
             </button>
         </>
     );

@@ -82,6 +82,10 @@ export function useGameHistory(username?: string | null) {
         fetchHistory(1);
     }, [username]); // Only depend on username, not fetchHistory to avoid loops
 
+    const refetchHistory = () => {
+        fetchHistory(currentPage);
+    };
+
     return {
         history,
         loading,
@@ -89,6 +93,7 @@ export function useGameHistory(username?: string | null) {
         currentPage,
         totalPages,
         goToPage,
-        saveGame
+        saveGame,
+        refetchHistory
     };
 }

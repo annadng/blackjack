@@ -44,7 +44,6 @@ export default function BuyChipsModal({isOpen, onClose, username, isGuest = fals
             onClose();
         } catch (err) {
             console.error("Failed to buy chips:", err);
-            alert("Failed to buy chips. Please try again.");
         } finally {
             setLoading(false);
         }
