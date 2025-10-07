@@ -1,0 +1,20 @@
+{
+  "/api/auth/login/route": "/api/auth/login",
+  "/api/auth/[...nextauth]/route": "/api/auth/[...nextauth]",
+  "/_not-found/page": "/_not-found",
+  "/api/auth/send-code/route": "/api/auth/send-code",
+  "/api/auth/verify-code/route": "/api/auth/verify-code",
+  "/api/chips/balance/route": "/api/chips/balance",
+  "/api/ai/route": "/api/ai",
+  "/api/chips/winnings/route": "/api/chips/winnings",
+  "/api/chips/deduct/route": "/api/chips/deduct",
+  "/api/game/route": "/api/game",
+  "/api/chips/buy/route": "/api/chips/buy",
+  "/api/history/route": "/api/history",
+  "/api/login/route": "/api/login",
+  "/api/game/save/route": "/api/game/save",
+  "/api/auth/signup/route": "/api/auth/signup",
+  "/login/page": "/login",
+  "/history/page": "/history",
+  "/page": "/"
+}

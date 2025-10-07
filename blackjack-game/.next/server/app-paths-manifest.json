@@ -1,7 +1,20 @@
 {
+  "/api/auth/login/route": "app/api/auth/login/route.js",
   "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/auth/send-code/route": "app/api/auth/send-code/route.js",
+  "/api/auth/verify-code/route": "app/api/auth/verify-code/route.js",
   "/api/chips/balance/route": "app/api/chips/balance/route.js",
+  "/api/ai/route": "app/api/ai/route.js",
+  "/api/chips/winnings/route": "app/api/chips/winnings/route.js",
+  "/api/chips/deduct/route": "app/api/chips/deduct/route.js",
+  "/api/game/route": "app/api/game/route.js",
+  "/api/chips/buy/route": "app/api/chips/buy/route.js",
   "/api/history/route": "app/api/history/route.js",
-  "/page": "app/page.js",
-  "/history/page": "app/history/page.js"
+  "/api/login/route": "app/api/login/route.js",
+  "/api/game/save/route": "app/api/game/save/route.js",
+  "/api/auth/signup/route": "app/api/auth/signup/route.js",
+  "/login/page": "app/login/page.js",
+  "/history/page": "app/history/page.js",
+  "/page": "app/page.js"
 }
