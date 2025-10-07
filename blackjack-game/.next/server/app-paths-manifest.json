@@ -1,0 +1,7 @@
+{
+  "/api/auth/[...nextauth]/route": "app/api/auth/[...nextauth]/route.js",
+  "/api/chips/balance/route": "app/api/chips/balance/route.js",
+  "/api/history/route": "app/api/history/route.js",
+  "/page": "app/page.js",
+  "/history/page": "app/history/page.js"
+}
