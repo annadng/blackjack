@@ -62,7 +62,11 @@ export default function GamePage() {
             }
 
             savedGameRef.current = gameId;
-            const winnings = game.result === "win" ? bet : game.result === "lose" ? -bet : 0;
+            const winnings =
+                game.result === "blackjack" ? bet * 1.5 :
+                game.result === "win" ? bet :
+                game.result === "lose" ? -bet :
+                0;
 
             if (isGuest) {
                 // Save to DynamoDB for guests
@@ -81,10 +85,12 @@ export default function GamePage() {
                 addGuestHistory(gameData);
 
                 // Update guest chips
-                if (game.result === "win") {
-                    addGuestChips(bet);
+                if (game.result === "blackjack") {
+                    addGuestChips(bet + bet * 1.5); // Return bet + 1.5x winnings = 2.5x total
+                } else if (game.result === "win") {
+                    addGuestChips(bet * 2); // Return bet + 1x winnings = 2x total
                 } else if (game.result === "push") {
-                    addGuestChips(bet);
+                    addGuestChips(bet); // Return bet only
                 }
             } else if (username) {
                 // Save to database for logged-in users

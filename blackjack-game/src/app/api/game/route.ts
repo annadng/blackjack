@@ -67,6 +67,75 @@ export async function POST(request: NextRequest) {
             const playerTotal = calculateTotal(playerCards);
             const dealerTotal = calculateTotal(dealerCards);
 
+            // Check for blackjack (21 with 2 cards)
+            if (playerTotal === 21 && playerCards.length === 2) {
+                const winnings = bet * 1.5; // Blackjack pays 1.5x
+                const totalReturn = bet + winnings; // Return bet + winnings
+
+                // Update chips (return bet + winnings)
+                await dynamo.send(
+                    new UpdateCommand({
+                        TableName: process.env.DYNAMO_USERS_TABLE!,
+                        Key: { username },
+                        UpdateExpression: "SET chips = if_not_exists(chips, :zero) + :totalReturn",
+                        ExpressionAttributeValues: {
+                            ":totalReturn": totalReturn,
+                            ":zero": 0,
+                        },
+                    })
+                );
+
+                // Save game state as finished
+                await dynamo.send(
+                    new PutCommand({
+                        TableName: process.env.DYNAMO_STATES_TABLE!,
+                        Item: {
+                            gameId: newGameId,
+                            username,
+                            playerCards,
+                            dealerCards,
+                            bet,
+                            playerTotal,
+                            dealerTotal,
+                            status: "finished",
+                            result: "blackjack",
+                            createdAt: Date.now(),
+                        },
+                    })
+                );
+
+                // Save game history
+                const gameHistory: GameHistory = {
+                    id: `${username}-${Date.now()}`,
+                    username,
+                    bet,
+                    playerCards,
+                    dealerCards,
+                    playerTotal,
+                    dealerTotal,
+                    result: "blackjack",
+                    winnings: winnings,
+                    timestamp: Date.now(),
+                };
+
+                await dynamo.send(
+                    new PutCommand({
+                        TableName: process.env.DYNAMO_HISTORY_TABLE!,
+                        Item: gameHistory,
+                    })
+                );
+
+                return NextResponse.json({
+                    gameId: newGameId,
+                    playerCards,
+                    dealerCards,
+                    playerTotal,
+                    dealerTotal,
+                    result: "blackjack",
+                    gameActive: false,
+                });
+            }
+
             // Save game state
             await dynamo.send(
                 new PutCommand({
@@ -173,26 +242,43 @@ export async function POST(request: NextRequest) {
 
             const playerTotal = calculateTotal(playerCards);
             const dealerTotal = calculateTotal(dealerCards);
-            let result: "win" | "lose" | "push";
+            let result: "win" | "lose" | "push" | "blackjack";
 
-            if (dealerTotal > 21 || playerTotal > dealerTotal) result = "win";
-            else if (dealerTotal > playerTotal) result = "lose";
-            else result = "push";
+            // Check for blackjack (21 with exactly 2 cards)
+            if (playerTotal === 21 && playerCards.length === 2) {
+                result = "blackjack";
+            } else if (dealerTotal > 21 || playerTotal > dealerTotal) {
+                result = "win";
+            } else if (dealerTotal > playerTotal) {
+                result = "lose";
+            } else {
+                result = "push";
+            }
 
-            // Calculate payout
-            let payout = 0;
-            if (result === "win") payout = gameBet * 2;
-            else if (result === "push") payout = gameBet;
+            // Calculate winnings and amount to return
+            let amountToReturn = 0;
+            let winnings = 0;
+
+            if (result === "blackjack") {
+                winnings = gameBet * 1.5; // Blackjack pays 1.5x
+                amountToReturn = gameBet + winnings; // Return bet + winnings = 2.5x total
+            } else if (result === "win") {
+                winnings = gameBet; // Win pays 1x
+                amountToReturn = gameBet + winnings; // Return bet + winnings = 2x total
+            } else if (result === "push") {
+                winnings = 0; // No winnings on push
+                amountToReturn = gameBet; // Return the bet only
+            }
 
             // Update chips
-            if (payout > 0) {
+            if (amountToReturn > 0) {
                 await dynamo.send(
                     new UpdateCommand({
                         TableName: process.env.DYNAMO_USERS_TABLE!,
                         Key: { username },
-                        UpdateExpression: "SET chips = if_not_exists(chips, :zero) + :payout",
+                        UpdateExpression: "SET chips = if_not_exists(chips, :zero) + :amount",
                         ExpressionAttributeValues: {
-                            ":payout": payout,
+                            ":amount": amountToReturn,
                             ":zero": 0,
                         },
                     })
@@ -227,7 +313,7 @@ export async function POST(request: NextRequest) {
                 playerTotal,
                 dealerTotal,
                 result,
-                winnings: payout - gameBet,
+                winnings: winnings,
                 timestamp: Date.now(),
             };
 

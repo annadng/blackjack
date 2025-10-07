@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type {Card} from "@/types";
 
-export type GameResult = "win" | "lose" | "push" | null;
+export type GameResult = "win" | "lose" | "push" | "blackjack" | null;
 export type ActionType = "hit" | "stand" | null;
 
 export function useBlackjack() {

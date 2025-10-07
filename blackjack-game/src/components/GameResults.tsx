@@ -11,12 +11,16 @@ interface GameResultProps {
 export default function GameResult({ result, playerTotal, onNewGame }: GameResultProps) {
     if (!result) return null;
 
+    const getResultStyle = () => {
+        if (result === "blackjack") return "bg-purple-600 text-white";
+        if (result === "win") return "bg-green-500 text-white";
+        if (result === "lose") return "bg-red-500 text-white";
+        return "bg-yellow-400 text-white";
+    };
+
     return (
         <div className="flex flex-col items-center mt-4 space-y-2">
-            <div
-                className={`px-6 py-2 font-bold rounded ${
-                    result === "win" ? "bg-green-500 text-white" : result === "lose" ? "bg-red-500 text-white" : "bg-yellow-400 text-white"
-                }`}>
+            <div className={`px-6 py-2 font-bold rounded ${getResultStyle()}`}>
                 {playerTotal} {result.toUpperCase()}
             </div>
             <button

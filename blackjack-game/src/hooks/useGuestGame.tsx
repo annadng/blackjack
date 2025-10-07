@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type {Card} from "@/types";
 
-export type GameResult = "win" | "lose" | "push" | null;
+export type GameResult = "win" | "lose" | "push" | "blackjack" | null;
 
 function drawCard(): Card {
     const names = ["2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K", "A"];
@@ -34,13 +34,21 @@ export function useGuestGame() {
     const dealInitialCards = () => {
         const pCards = [drawCard(), drawCard()];
         const dCards = [drawCard()];
+        const pTotal = calculateTotal(pCards);
 
         setPlayerCards(pCards);
         setDealerCards(dCards);
-        setPlayerTotal(calculateTotal(pCards));
+        setPlayerTotal(pTotal);
         setDealerTotal(calculateTotal(dCards));
-        setGameActive(true);
-        setResult(null);
+
+        // Check for blackjack
+        if (pTotal === 21 && pCards.length === 2) {
+            setResult("blackjack");
+            setGameActive(false);
+        } else {
+            setGameActive(true);
+            setResult(null);
+        }
     };
 
     const hit = () => {
@@ -73,7 +81,10 @@ export function useGuestGame() {
 
         let gameResult: GameResult;
 
-        if (dealerScore > 21 || playerScore > dealerScore) {
+        // Check for blackjack
+        if (playerScore === 21 && playerCards.length === 2) {
+            gameResult = "blackjack";
+        } else if (dealerScore > 21 || playerScore > dealerScore) {
             gameResult = "win";
         } else if (dealerScore > playerScore) {
             gameResult = "lose";
