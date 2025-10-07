@@ -8,14 +8,13 @@ import BuyChipsModal from "@/components/BuyChipsModal";
 import { useChips } from "@/hooks/useChips";
 import { useGameHistory } from "@/hooks/useGameHistory";
 import { useGuestStorage } from "@/hooks/useGuestStorage";
-import { getGuestId } from "@/utils/guest";
 
 export default function HistoryPage() {
     const router = useRouter();
     const { data: session } = useSession();
 
-    // Determine username: email if logged in, guestId if guest
-    const username = session?.user?.email ?? getGuestId();
+    // Determine username: email if logged in, undefined for guest
+    const username = session?.user?.email;
     const isGuest = !session?.user?.email;
 
     const [showBuyChips, setShowBuyChips] = useState(false);
@@ -51,14 +50,8 @@ export default function HistoryPage() {
         });
     };
 
-    const getResultColor = (result: string) => {
-        if (result === "win") return "text-green-600";
-        if (result === "lose") return "text-red-600";
-        return "text-yellow-600";
-    };
-
     const getResultBadge = (result: string) => {
-        if (result === "win") return "bg-green-100 text-green-700";
+        if (result === "win" || result === "blackjack") return "bg-green-100 text-green-700";
         if (result === "lose") return "bg-red-100 text-red-700";
         return "bg-yellow-100 text-yellow-700";
     };
@@ -102,7 +95,7 @@ export default function HistoryPage() {
     if (!mounted) return <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100" />;
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="min-h-screen bg-[#fccfcf]">
             <Navigation
                 chips={currentChips}
                 onHistoryClick={() => router.push("/history")}
@@ -125,7 +118,7 @@ export default function HistoryPage() {
                     {isGuest && (
                         <div className="mb-6 text-center p-4 bg-gray-50 rounded-lg">
                             <p className="text-xs text-gray-500">
-                                Playing as Guest • Your progress persists •
+                                Playing as Guest • 
                                 <button onClick={() => {}} className="text-[#ffb5c0] hover:underline ml-1">Sign in</button> to sync across devices
                             </p>
                         </div>
@@ -160,45 +153,46 @@ export default function HistoryPage() {
                                     >
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-6">
-                                                <div className="text-center">
+                                                <div>
                                                     <p className="text-xs text-gray-400 mb-1">Date</p>
                                                     <p className="text-sm text-gray-700 font-light">
                                                         {formatDate(game.timestamp)}
                                                     </p>
                                                 </div>
 
-                                                <div className="text-center">
+                                                <div>
                                                     <p className="text-xs text-gray-400 mb-1">Bet</p>
                                                     <p className="text-sm text-gray-700 font-light">
-                                                        {game.bet}
-                                                    </p>
-                                                </div>
-
-                                                <div className="text-center">
-                                                    <p className="text-xs text-gray-400 mb-1">Score</p>
-                                                    <p className="text-sm text-gray-700 font-light">
-                                                        You: <span className="text-[#ffb5c0] font-medium">{game.playerTotal || 0}</span>
-                                                        <span className="mx-2 text-gray-300">|</span>
-                                                        Dealer: <span className="text-gray-500 font-medium">{game.dealerTotal || 0}</span>
+                                                        {game.bet} chips
                                                     </p>
                                                 </div>
                                             </div>
 
-                                            <div className="flex items-center gap-4">
-                                                <div className="text-right">
-                                                    <p className="text-xs text-gray-400 mb-1">Result</p>
-                                                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${getResultBadge(game.result)}`}>
-                                                        {game.result === "win" ? "Win" : game.result === "lose" ? "Lose" : "Push"}
-                                                    </span>
+                                            <div className="flex items-center">
+                                                <div className="w-48">
+                                                    <p className="text-xs text-gray-400 mb-1">Score</p>
+                                                    <p className="text-sm text-gray-700 font-light">
+                                                        You:{" "}
+                                                        <span className="text-[#ffb5c0] font-medium">
+                                                            {game.playerTotal || 0}
+                                                        </span>
+                                                        <span className="mx-2 text-gray-300">|</span>
+                                                        Dealer:{" "}
+                                                        <span className="text-gray-500 font-medium">
+                                                            {game.dealerTotal || 0}
+                                                        </span>
+                                                    </p>
                                                 </div>
 
-                                                <div className="text-right">
-                                                    <p className="text-xs text-gray-400 mb-1">Winnings</p>
-                                                    <p className={`text-lg font-light ${getResultColor(game.result)}`}>
-                                                        {game.winnings > 0 ? `+${game.winnings}` :
-                                                            game.winnings < 0 ? `${game.winnings}` :
-                                                                '0'} chips
-                                                    </p>
+                                                <div className="w-32 text-left" >
+                                                    <p className="text-xs text-gray-400 mb-1">Result</p>
+                                                    <span
+                                                        className={`inline-block px-3 py-1 rounded-full text-xs font-medium text-right ${getResultBadge(
+                                                            game.result)}`}>
+                                                    {game.result === "blackjack" ? `Blackjack (+${game.winnings})`
+                                                        : game.result === "win" ? `Win (+${game.winnings})`
+                                                        : game.result === "lose" ? "Lose" : "Push"}
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
@@ -252,6 +246,9 @@ export default function HistoryPage() {
                                         Showing {((currentPage - 1) * 10) + 1}-{Math.min(currentPage * 10, totalGames)} of {totalGames} games
                                     </span>
                                     <div className="flex gap-4">
+                                        <span className="text-gray-400">
+                                            Blackjacks: <span className="text-purple-600">{history.filter((g: any) => g.result === "blackjack").length}</span>
+                                        </span>
                                         <span className="text-gray-400">
                                             Wins: <span className="text-green-600">{history.filter((g: any) => g.result === "win").length}</span>
                                         </span>
